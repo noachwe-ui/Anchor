@@ -1,0 +1,140 @@
+:root {
+  --bg: #111827;
+  --card: #1f2a3c;
+  --text: #f0f4fa;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-soft: #3b82f6;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  padding: 28px 20px 40px;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin-top: 4px;
+}
+
+.quote-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  margin-bottom: 24px;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+#quote-text {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+#quote-source {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.btn {
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid #334155;
+}
+
+.personal {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.personal h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--muted);
+}
+
+textarea {
+  width: 100%;
+  height: 90px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  color: var(--text);
+  padding: 14px;
+  font-size: 0.95rem;
+  resize: none;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-soft);
+}
+
+textarea::placeholder {
+  color: #64748b;
+}

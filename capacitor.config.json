@@ -1,0 +1,8 @@
+{
+  "appId": "com.anchor.app",
+  "appName": "Anchor",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

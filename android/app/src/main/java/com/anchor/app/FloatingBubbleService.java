@@ -28,6 +28,8 @@ public class FloatingBubbleService extends Service {
     private WindowManager.LayoutParams params;
     private Handler handler;
     private boolean visible = false;
+    private int hideCountdown = 0;
+    private static final int HIDE_DELAY_TICKS = 4; // keep visible \~3 seconds after brief glitches
 
     private static final Set<String> TARGETS = new HashSet<>(Arrays.asList(
         "com.android.chrome",

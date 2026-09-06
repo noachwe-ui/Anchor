@@ -28,6 +28,7 @@ public class FloatingBubbleService extends Service {
     private WindowManager.LayoutParams params;
     private Handler handler;
     private boolean visible = false;
+    private boolean isDragging = false;
     private int hideCountdown = 0;
     private static final int HIDE_DELAY_TICKS = 4; // keep visible \~3 seconds after brief glitches
 
@@ -123,6 +124,7 @@ public class FloatingBubbleService extends Service {
             int ix, iy; float tx, ty;
             public boolean onTouch(View v, MotionEvent e) {
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
+                    isDragging = true;
                     ix = params.x; iy = params.y;
                     tx = e.getRawX(); ty = e.getRawY();
                     return true;

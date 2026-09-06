@@ -1,20 +1,53 @@
 package com.anchor.app;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
+import android.app.usage.UsageEvents;
+import android.app.usage.UsageStatsManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class FloatingBubbleService extends Service {
     private WindowManager wm;
     private View bubble;
+    private WindowManager.LayoutParams params;
+    private Handler handler;
+    private boolean visible = false;
+
+    private static final Set<String> TARGETS = new HashSet<>(Arrays.asList(
+        "com.android.chrome",
+        "com.chrome.beta",
+        "com.sec.android.app.sbrowser",
+        "org.mozilla.firefox",
+        "com.opera.browser",
+        "com.brave.browser",
+        "com.microsoft.emmx",
+        "com.google.android.youtube",
+        "com.instagram.android",
+        "com.zhiliaoapp.musically",
+        "com.ss.android.ugc.trill",
+        "com.whatsapp",
+        "com.facebook.katana",
+        "com.facebook.orca",
+        "com.twitter.android",
+        "com.snapchat.android",
+        "com.reddit.frontpage"
+    ));
 
     @Override
     public IBinder onBind(Intent i) { return null; }
@@ -22,8 +55,32 @@ public class FloatingBubbleService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        startAsForeground();
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        makeBubble();
+        handler = new Handler(Looper.getMainLooper());
+        handler.post(checkRunnable);
+    }
 
+    private void startAsForeground() {
+        String id = "anchor_bubble";
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel ch = new NotificationChannel(
+                id, "Anchor Bubble", NotificationManager.IMPORTANCE_LOW);
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            nm.createNotificationChannel(ch);
+        }
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ?
+            new Notification.Builder(this, id) :
+            new Notification.Builder(this);
+        Notification n = b.setContentTitle("Anchor")
+            .setContentText("Bubble is ready")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .build();
+        startForeground(1, n);
+    }
+
+    private void makeBubble() {
         TextView tv = new TextView(this);
         tv.setText("⚓");
         tv.setTextSize(22);
@@ -36,29 +93,28 @@ public class FloatingBubbleService extends Service {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
             WindowManager.LayoutParams.TYPE_PHONE;
 
-        final WindowManager.LayoutParams p = new WindowManager.LayoutParams(
+        params = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT);
-        p.gravity = Gravity.TOP | Gravity.START;
-        p.x = 50;
-        p.y = 350;
+        params.gravity = Gravity.TOP | Gravity.START;
+        params.x = 50;
+        params.y = 350;
 
         bubble.setOnTouchListener(new View.OnTouchListener() {
-            int ix, iy;
-            float tx, ty;
+            int ix, iy; float tx, ty;
             public boolean onTouch(View v, MotionEvent e) {
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                    ix = p.x; iy = p.y;
+                    ix = params.x; iy = params.y;
                     tx = e.getRawX(); ty = e.getRawY();
                     return true;
                 }
                 if (e.getAction() == MotionEvent.ACTION_MOVE) {
-                    p.x = ix + (int)(e.getRawX() - tx);
-                    p.y = iy + (int)(e.getRawY() - ty);
-                    wm.updateViewLayout(bubble, p);
+                    params.x = ix + (int)(e.getRawX() - tx);
+                    params.y = iy + (int)(e.getRawY() - ty);
+                    if (visible) wm.updateViewLayout(bubble, params);
                     return true;
                 }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
@@ -72,12 +128,51 @@ public class FloatingBubbleService extends Service {
                 return false;
             }
         });
-        wm.addView(bubble, p);
+    }
+
+    private final Runnable checkRunnable = new Runnable() {
+        @Override
+        public void run() {
+            boolean shouldShow = TARGETS.contains(getForegroundApp());
+            if (shouldShow && !visible) {
+                try { wm.addView(bubble, params); visible = true; } catch (Exception ignored) {}
+            } else if (!shouldShow && visible) {
+                try { wm.removeView(bubble); visible = false; } catch (Exception ignored) {}
+            }
+            handler.postDelayed(this, 1000);
+        }
+    };
+
+    private String getForegroundApp() {
+        try {
+            UsageStatsManager usm = (UsageStatsManager) getSystemService(USAGE_STATS_SERVICE);
+            long end = System.currentTimeMillis();
+            UsageEvents events = usm.queryEvents(end - 5000, end);
+            UsageEvents.Event ev = new UsageEvents.Event();
+            String last = "";
+            while (events.hasNextEvent()) {
+                events.getNextEvent(ev);
+                if (ev.getEventType() == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    last = ev.getPackageName();
+                }
+            }
+            return last;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (bubble != null) wm.removeView(bubble);
+        if (handler != null) handler.removeCallbacksAndMessages(null);
+        if (visible && bubble != null) {
+            try { wm.removeView(bubble); } catch (Exception ignored) {}
+        }
     }
 }

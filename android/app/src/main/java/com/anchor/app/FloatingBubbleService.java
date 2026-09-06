@@ -32,21 +32,35 @@ public class FloatingBubbleService extends Service {
     private static final Set<String> TARGETS = new HashSet<>(Arrays.asList(
         "com.android.chrome",
         "com.chrome.beta",
+        "com.chrome.dev",
         "com.sec.android.app.sbrowser",
         "org.mozilla.firefox",
+        "org.mozilla.firefox_beta",
         "com.opera.browser",
+        "com.opera.mini.native",
         "com.brave.browser",
         "com.microsoft.emmx",
+        "com.duckduckgo.mobile.android",
+        "com.vivaldi.browser",
         "com.google.android.youtube",
+        "com.whatsapp",
+        "com.whatsapp.w4b",
         "com.instagram.android",
+        "com.facebook.katana",
+        "com.facebook.lite",
+        "com.facebook.orca",
+        "com.facebook.mlite",
         "com.zhiliaoapp.musically",
         "com.ss.android.ugc.trill",
-        "com.whatsapp",
-        "com.facebook.katana",
-        "com.facebook.orca",
+        "com.ss.android.ugc.aweme",
         "com.twitter.android",
         "com.snapchat.android",
-        "com.reddit.frontpage"
+        "com.reddit.frontpage",
+        "org.telegram.messenger",
+        "org.telegram.messenger.web",
+        "com.discord",
+        "com.pinterest",
+        "com.linkedin.android"
     ));
 
     @Override
@@ -139,7 +153,7 @@ public class FloatingBubbleService extends Service {
             } else if (!shouldShow && visible) {
                 try { wm.removeView(bubble); visible = false; } catch (Exception ignored) {}
             }
-            handler.postDelayed(this, 1000);
+            handler.postDelayed(this, 700);
         }
     };
 

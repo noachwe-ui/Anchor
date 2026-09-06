@@ -109,11 +109,17 @@ h1 {
   color: var(--text);
 }
 
+.btn.small {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+}
+
 .personal {
   background: var(--card);
   border-radius: var(--radius);
   padding: 22px 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  margin-bottom: 28px;
 }
 
 .personal h2 {
@@ -144,4 +150,47 @@ textarea:focus {
 
 textarea::placeholder {
   color: #b0a99f;
+}
+
+/* Settings */
+.settings {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.settings h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+
+.setting-row {
+  margin-bottom: 18px;
+}
+
+.setting-row label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.setting-row input[type="url"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 2px solid #f0ebe3;
+  background: #fdfbf8;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.setting-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
 }

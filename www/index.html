@@ -24,6 +24,7 @@
     <div class="actions">
       <button id="clip-btn" class="btn primary">Watch a Clip</button>
       <button id="new-quote-btn" class="btn secondary">Inspire Me ✨</button>
+      <button id="chizuk-btn" class="btn secondary" style="display:none;">My Chizuk 💛</button>
     </div>
 
     <section class="personal">
@@ -31,9 +32,24 @@
       <textarea id="personal-note" placeholder="What made you smile today?..."></textarea>
       <button id="save-note-btn" class="btn secondary">Keep This Thought 💛</button>
     </section>
+
+    <section class="settings">
+      <h2>Settings</h2>
+
+      <div class="setting-row">
+        <label>Floating Bubble</label>
+        <input type="checkbox" id="bubble-toggle">
+      </div>
+
+      <div class="setting-row">
+        <label>My Chizuk Links</label>
+        <div id="chizuk-list"></div>
+        <input type="url" id="chizuk-link" placeholder="https://...">
+        <button id="add-chizuk-btn" class="btn secondary small">Add Link</button>
+      </div>
+    </section>
   </div>
 
   <script src="script.js"></script>
 </body>
 </html>
-

@@ -17,9 +17,8 @@ public class FloatingBubbleService extends Service {
     private View bubble;
 
     @Override
-    public IBinder onBind(Intent i) {
-        return null;
-    }
+    public IBinder onBind(Intent i) { return null; }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -46,6 +45,7 @@ public class FloatingBubbleService extends Service {
         p.gravity = Gravity.TOP | Gravity.START;
         p.x = 50;
         p.y = 350;
+
         bubble.setOnTouchListener(new View.OnTouchListener() {
             int ix, iy;
             float tx, ty;

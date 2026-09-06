@@ -14,7 +14,7 @@
         android:theme="@style/AppTheme">
 
         <service
-            android:name="com.anchor.app.FloatingBubbleService"
+            android:name=".FloatingBubbleService"
             android:enabled="true"
             android:exported="false" />
 

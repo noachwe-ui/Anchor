@@ -30,7 +30,7 @@ public class FloatingBubbleService extends Service {
     private boolean visible = false;
     private boolean isDragging = false;
     private int hideCountdown = 0;
-    private static final int HIDE_DELAY_TICKS = 8; // keep visible longer after glitches/drags
+    private static final int HIDE_DELAY_TICKS = 10; // keep visible longer after glitches/drags
 
     private static final Set<String> TARGETS = new HashSet<>(Arrays.asList(
         "com.android.chrome",
@@ -151,11 +151,17 @@ public class FloatingBubbleService extends Service {
     private final Runnable checkRunnable = new Runnable() {
         @Override
         public void run() {
-            boolean shouldShow = TARGETS.contains(getForegroundApp());
-            if (shouldShow && !visible) {
-                try { wm.addView(bubble, params); visible = true; } catch (Exception ignored) {}
-            } else if (!shouldShow && visible) {
-                try { wm.removeView(bubble); visible = false; } catch (Exception ignored) {}
+            String fg = getForegroundApp();
+            boolean onTarget = fg != null && TARGETS.contains(fg);
+
+            if (onTarget) {
+                hideCountdown = HIDE_DELAY_TICKS;
+                showBubble();
+            } else if (!isDragging) {
+                hideCountdown--;
+                if (hideCountdown <= 0) {
+                    hideBubble();
+                }
             }
             handler.postDelayed(this, 700);
         }
@@ -178,6 +184,31 @@ public class FloatingBubbleService extends Service {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    
+    private void showBubble() {
+        if (bubble == null || params == null) return;
+        try {
+            if (!visible) {
+                wm.addView(bubble, params);
+                visible = true;
+            } else {
+                bubble.setVisibility(View.VISIBLE);
+            }
+        } catch (Exception e) {
+            try {
+                wm.addView(bubble, params);
+                visible = true;
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void hideBubble() {
+        if (bubble == null || !visible) return;
+        try {
+            bubble.setVisibility(View.GONE);
+        } catch (Exception ignored) {}
     }
 
     @Override

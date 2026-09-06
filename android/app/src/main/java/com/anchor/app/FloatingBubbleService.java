@@ -154,10 +154,16 @@ public class FloatingBubbleService extends Service {
             String fg = getForegroundApp();
             boolean onTarget = fg != null && TARGETS.contains(fg);
 
+            if (isDragging) {
+                // never change visibility while finger is down
+                handler.postDelayed(this, 700);
+                return;
+            }
+
             if (onTarget) {
-                hideCountdown = HIDE_DELAY_TICKS;
+                hideCountdown = 3; // short sticky buffer
                 showBubble();
-            } else if (!isDragging) {
+            } else {
                 hideCountdown--;
                 if (hideCountdown <= 0) {
                     hideBubble();
@@ -205,9 +211,15 @@ public class FloatingBubbleService extends Service {
     }
 
     private void hideBubble() {
-        if (bubble == null || !visible) return;
+        if (bubble == null) return;
         try {
             bubble.setVisibility(View.GONE);
+        } catch (Exception ignored) {}
+        try {
+            if (visible) {
+                wm.removeView(bubble);
+                visible = false;
+            }
         } catch (Exception ignored) {}
     }
 

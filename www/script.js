@@ -1,79 +1,116 @@
 let quotes = [];
 let urls = [];
 
+const REMOTE_QUOTES = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/quotes.json";
+const REMOTE_URLS   = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/urls.json";
+
 async function loadData() {
+  // 1) Try remote (GitHub)
   try {
     const [qRes, uRes] = await Promise.all([
-      fetch('quotes.json'),
-      fetch('urls.json')
+      fetch(REMOTE_QUOTES, { cache: "no-store" }),
+      fetch(REMOTE_URLS,   { cache: "no-store" })
+    ]);
+    if (qRes.ok && uRes.ok) {
+      quotes = await qRes.json();
+      urls   = await uRes.json();
+      localStorage.setItem("anchor-quotes-cache", JSON.stringify(quotes));
+      localStorage.setItem("anchor-urls-cache",   JSON.stringify(urls));
+      showRandomQuote();
+      return;
+    }
+  } catch (e) {
+    // offline or remote failed — fall through
+  }
+
+  // 2) Try local cache
+  try {
+    const cq = localStorage.getItem("anchor-quotes-cache");
+    const cu = localStorage.getItem("anchor-urls-cache");
+    if (cq && cu) {
+      quotes = JSON.parse(cq);
+      urls   = JSON.parse(cu);
+      showRandomQuote();
+      return;
+    }
+  } catch (e) {}
+
+  // 3) Fallback to bundled files inside the APK
+  try {
+    const [qRes, uRes] = await Promise.all([
+      fetch("quotes.json"),
+      fetch("urls.json")
     ]);
     quotes = await qRes.json();
-    urls = await uRes.json();
+    urls   = await uRes.json();
     showRandomQuote();
   } catch (err) {
-    document.getElementById('quote-text').textContent = "Take a slow breath. You are here now.";
+    document.getElementById("quote-text").textContent =
+      "Take a slow breath. You are here now.";
   }
 }
 
 function showRandomQuote() {
   if (!quotes.length) return;
   const item = quotes[Math.floor(Math.random() * quotes.length)];
-  document.getElementById('quote-text').textContent = item.quote;
-  document.getElementById('quote-source').textContent = item.source ? `— ${item.source}` : '';
+  document.getElementById("quote-text").textContent = item.quote;
+  document.getElementById("quote-source").textContent =
+    item.source ? `— ${item.source}` : "";
 }
 
-document.getElementById('new-quote-btn').addEventListener('click', showRandomQuote);
+document.getElementById("new-quote-btn").addEventListener("click", showRandomQuote);
 
-document.getElementById('clip-btn').addEventListener('click', () => {
+document.getElementById("clip-btn").addEventListener("click", () => {
   if (!urls.length) {
-    alert('No clips added yet.');
+    alert("No clips added yet.");
     return;
   }
   const link = urls[Math.floor(Math.random() * urls.length)];
-  window.open(link, '_blank');
+  window.open(link, "_blank");
 });
 
 // Personal note
-const noteEl = document.getElementById('personal-note');
-noteEl.value = localStorage.getItem('anchor-note') || '';
-document.getElementById('save-note-btn').addEventListener('click', () => {
-  localStorage.setItem('anchor-note', noteEl.value);
-  alert('Note saved on this device.');
+const noteEl = document.getElementById("personal-note");
+noteEl.value = localStorage.getItem("anchor-note") || "";
+document.getElementById("save-note-btn").addEventListener("click", () => {
+  localStorage.setItem("anchor-note", noteEl.value);
+  alert("Note saved on this device.");
 });
 
 // Bubble toggle
-const bubbleToggle = document.getElementById('bubble-toggle');
-bubbleToggle.checked = localStorage.getItem('anchor-bubble') === 'true';
-bubbleToggle.addEventListener('change', () => {
-  localStorage.setItem('anchor-bubble', bubbleToggle.checked);
-  alert(bubbleToggle.checked ? 'Bubble will appear next time you open the app' : 'Bubble disabled');
+const bubbleToggle = document.getElementById("bubble-toggle");
+bubbleToggle.checked = localStorage.getItem("anchor-bubble") === "true";
+bubbleToggle.addEventListener("change", () => {
+  localStorage.setItem("anchor-bubble", bubbleToggle.checked);
+  alert(bubbleToggle.checked
+    ? "Bubble will appear next time you open the app"
+    : "Bubble disabled");
 });
 
-// === Multiple Chizuk Links ===
+// Multiple Chizuk links
 function getChizukLinks() {
   try {
-    return JSON.parse(localStorage.getItem('anchor-chizuk-links') || '[]');
+    return JSON.parse(localStorage.getItem("anchor-chizuk-links") || "[]");
   } catch {
     return [];
   }
 }
 
 function saveChizukLinks(links) {
-  localStorage.setItem('anchor-chizuk-links', JSON.stringify(links));
+  localStorage.setItem("anchor-chizuk-links", JSON.stringify(links));
 }
 
 function renderChizukList() {
-  const list = document.getElementById('chizuk-list');
+  const list = document.getElementById("chizuk-list");
   const links = getChizukLinks();
-  list.innerHTML = '';
+  list.innerHTML = "";
 
   links.forEach((link, index) => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;';
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:10px;";
 
-    // Clickable link
-    const linkBtn = document.createElement('button');
-    linkBtn.textContent = link.length > 38 ? link.substring(0, 35) + '...' : link;
+    const linkBtn = document.createElement("button");
+    linkBtn.textContent = link.length > 38 ? link.substring(0, 35) + "..." : link;
     linkBtn.style.cssText = `
       flex: 1;
       text-align: left;
@@ -86,11 +123,10 @@ function renderChizukList() {
       color: var(--text);
       cursor: pointer;
     `;
-    linkBtn.onclick = () => window.open(link, '_blank');
+    linkBtn.onclick = () => window.open(link, "_blank");
 
-    // Delete button
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '✕';
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "✕";
     delBtn.style.cssText = `
       background: #ff6b6b;
       color: white;
@@ -117,13 +153,13 @@ function renderChizukList() {
 }
 
 function updateChizukButton() {
-  const btn = document.getElementById('chizuk-btn');
+  const btn = document.getElementById("chizuk-btn");
   const links = getChizukLinks();
-  btn.style.display = links.length > 0 ? 'block' : 'none';
+  btn.style.display = links.length > 0 ? "block" : "none";
 }
 
-document.getElementById('add-chizuk-btn').addEventListener('click', () => {
-  const input = document.getElementById('chizuk-link');
+document.getElementById("add-chizuk-btn").addEventListener("click", () => {
+  const input = document.getElementById("chizuk-link");
   const link = input.value.trim();
   if (!link) return;
 
@@ -132,17 +168,17 @@ document.getElementById('add-chizuk-btn').addEventListener('click', () => {
     links.push(link);
     saveChizukLinks(links);
   }
-  input.value = '';
+  input.value = "";
   renderChizukList();
   updateChizukButton();
-  alert('Link added!');
+  alert("Link added!");
 });
 
-document.getElementById('chizuk-btn').addEventListener('click', () => {
+document.getElementById("chizuk-btn").addEventListener("click", () => {
   const links = getChizukLinks();
   if (links.length === 0) return;
   const link = links[Math.floor(Math.random() * links.length)];
-  window.open(link, '_blank');
+  window.open(link, "_blank");
 });
 
 renderChizukList();

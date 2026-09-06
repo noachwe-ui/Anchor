@@ -29,6 +29,7 @@ public class FloatingBubbleService extends Service {
     private Handler handler;
     private boolean visible = false;
     private boolean isDragging = false;
+    private boolean userHidden = false;
     private int hideCountdown = 0;
     private static final int HIDE_DELAY_TICKS = 10; // keep visible longer after glitches/drags
 
@@ -120,6 +121,11 @@ public class FloatingBubbleService extends Service {
         params.x = 50;
         params.y = 350;
 
+        bubble.setOnLongClickListener(v -> {
+            userHidden = true;
+            hideBubble();
+            return true;
+        });
         bubble.setOnTouchListener(new View.OnTouchListener() {
             int ix, iy; float tx, ty;
             public boolean onTouch(View v, MotionEvent e) {
@@ -155,19 +161,21 @@ public class FloatingBubbleService extends Service {
             boolean onTarget = fg != null && TARGETS.contains(fg);
 
             if (isDragging) {
-                // never change visibility while finger is down
                 handler.postDelayed(this, 700);
                 return;
             }
 
             if (onTarget) {
-                hideCountdown = 3; // short sticky buffer
-                showBubble();
-            } else {
-                hideCountdown--;
-                if (hideCountdown <= 0) {
-                    hideBubble();
+                // opening a target app can bring it back after manual close
+                if (userHidden) {
+                    // only clear userHidden when we left targets and came back
                 }
+                if (!userHidden) {
+                    showBubble();
+                }
+            } else {
+                userHidden = false; // ready to show next time a target opens
+                hideBubble();
             }
             handler.postDelayed(this, 700);
         }
@@ -212,9 +220,7 @@ public class FloatingBubbleService extends Service {
 
     private void hideBubble() {
         if (bubble == null) return;
-        try {
-            bubble.setVisibility(View.GONE);
-        } catch (Exception ignored) {}
+        try { bubble.setVisibility(View.GONE); } catch (Exception ignored) {}
         try {
             if (visible) {
                 wm.removeView(bubble);

@@ -221,16 +221,22 @@ public class FloatingBubbleService extends Service {
     }
 
     private void showBubble() {
-        if (bubble == null) return;
+        if (bubble == null || bubbleParams == null) return;
         try {
             if (!visible) {
                 wm.addView(bubble, bubbleParams);
                 visible = true;
             } else {
                 bubble.setVisibility(View.VISIBLE);
+                try { wm.updateViewLayout(bubble, bubbleParams); } catch (Exception ignored) {}
             }
         } catch (Exception e) {
-            try { wm.addView(bubble, bubbleParams); visible = true; } catch (Exception ignored) {}
+            // view may have been removed out from under us
+            visible = false;
+            try {
+                wm.addView(bubble, bubbleParams);
+                visible = true;
+            } catch (Exception ignored) {}
         }
     }
 
@@ -256,13 +262,20 @@ public class FloatingBubbleService extends Service {
             String fg = getForegroundApp();
             boolean onTarget = fg != null && TARGETS.contains(fg);
 
+            // Also treat any chrome package name as target
+            if (!onTarget && fg != null && fg.contains("chrome")) {
+                onTarget = true;
+            }
+
             if (onTarget) {
                 missCount = 0;
-                if (!userHidden) showBubble();
+                if (!userHidden) {
+                    showBubble();
+                }
             } else {
-                // Need several misses in a row before hiding (stops WhatsApp flicker)
                 missCount++;
-                if (missCount >= 4) { // \~2 seconds at 500ms
+                if (missCount >= 6) {
+                    // only clear manual-hide after we truly left target apps
                     userHidden = false;
                     hideBubble();
                 }

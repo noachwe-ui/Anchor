@@ -36,6 +36,7 @@ public class FloatingBubbleService extends Service {
     private boolean removeVisible = false;
     private boolean userHidden = false;
     private int missCount = 0;
+    private long holdUntil = 0;
     private boolean isDragging = false;
     private int screenHeight;
 
@@ -259,25 +260,32 @@ public class FloatingBubbleService extends Service {
                 return;
             }
 
+            long now = System.currentTimeMillis();
             String fg = getForegroundApp();
-            boolean onTarget = fg != null && TARGETS.contains(fg);
-
-            // Also treat any chrome package name as target
-            if (!onTarget && fg != null && fg.contains("chrome")) {
-                onTarget = true;
-            }
+            boolean onTarget = fg != null && (TARGETS.contains(fg) || fg.contains("chrome") || fg.contains("whatsapp"));
+            boolean onLauncher = fg != null && (fg.contains("launcher") || fg.contains("home") || fg.contains("nexuslauncher") || fg.contains("touchwiz"));
 
             if (onTarget) {
                 missCount = 0;
-                if (!userHidden) {
-                    showBubble();
+                holdUntil = now + 45000; // keep on for 45s after last target sighting
+                if (!userHidden) showBubble();
+            } else if (onLauncher) {
+                missCount++;
+                if (missCount >= 3) {
+                    userHidden = false;
+                    holdUntil = 0;
+                    hideBubble();
                 }
             } else {
-                missCount++;
-                if (missCount >= 6) {
-                    // only clear manual-hide after we truly left target apps
-                    userHidden = false;
-                    hideBubble();
+                // unknown/other app: only hide after hold window expires
+                if (now >= holdUntil) {
+                    missCount++;
+                    if (missCount >= 4) {
+                        userHidden = false;
+                        hideBubble();
+                    }
+                } else if (!userHidden) {
+                    showBubble(); // still inside hold window
                 }
             }
             handler.postDelayed(this, 500);

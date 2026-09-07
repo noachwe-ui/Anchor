@@ -35,6 +35,7 @@ public class FloatingBubbleService extends Service {
     private boolean visible = false;
     private boolean removeVisible = false;
     private boolean userHidden = false;
+    private int missCount = 0;
     private boolean isDragging = false;
     private int screenHeight;
 
@@ -251,15 +252,20 @@ public class FloatingBubbleService extends Service {
                 handler.postDelayed(this, 500);
                 return;
             }
+
             String fg = getForegroundApp();
             boolean onTarget = fg != null && TARGETS.contains(fg);
 
             if (onTarget) {
+                missCount = 0;
                 if (!userHidden) showBubble();
             } else {
-                // Left target app (or unknown/launcher). Hide right away.
-                userHidden = false;
-                hideBubble();
+                // Need several misses in a row before hiding (stops WhatsApp flicker)
+                missCount++;
+                if (missCount >= 4) { // \~2 seconds at 500ms
+                    userHidden = false;
+                    hideBubble();
+                }
             }
             handler.postDelayed(this, 500);
         }

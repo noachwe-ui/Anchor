@@ -21,11 +21,31 @@ public class MainActivity extends BridgeActivity {
             }
         }
 
-        // Open Accessibility settings so user can enable Anchor monitor
         try {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         } catch (Exception ignored) {}
 
         startService(new Intent(this, FloatingBubbleService.class));
+        handleClipIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleClipIntent(intent);
+    }
+
+    private void handleClipIntent(Intent intent) {
+        if (intent == null || !intent.getBooleanExtra("open_clip", false)) return;
+        // Click the web "Watch a Clip" button after the page loads
+        getBridge().getWebView().postDelayed(() -> {
+            try {
+                getBridge().getWebView().evaluateJavascript(
+                    "document.getElementById('clip-btn') && document.getElementById('clip-btn').click();",
+                    null
+                );
+            } catch (Exception ignored) {}
+        }, 800);
     }
 }

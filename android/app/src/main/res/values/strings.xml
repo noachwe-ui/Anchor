@@ -4,4 +4,5 @@
     <string name="title_activity_main">Anchor</string>
     <string name="package_name">com.anchor.app</string>
     <string name="custom_url_scheme">com.anchor.app</string>
+<string name="accessibility_service_description">Anchor detects when browsers or social apps are open so the support bubble can appear. It does not read page content.</string>
 </resources>

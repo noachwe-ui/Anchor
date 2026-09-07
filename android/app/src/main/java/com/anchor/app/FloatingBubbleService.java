@@ -248,18 +248,20 @@ public class FloatingBubbleService extends Service {
     private final Runnable checkRunnable = new Runnable() {
         @Override public void run() {
             if (isDragging) {
-                handler.postDelayed(this, 700);
+                handler.postDelayed(this, 500);
                 return;
             }
             String fg = getForegroundApp();
             boolean onTarget = fg != null && TARGETS.contains(fg);
+
             if (onTarget) {
                 if (!userHidden) showBubble();
             } else {
+                // Left target app (or unknown/launcher). Hide right away.
                 userHidden = false;
                 hideBubble();
             }
-            handler.postDelayed(this, 700);
+            handler.postDelayed(this, 500);
         }
     };
 
@@ -267,7 +269,27 @@ public class FloatingBubbleService extends Service {
         try {
             UsageStatsManager usm = (UsageStatsManager) getSystemService(USAGE_STATS_SERVICE);
             long end = System.currentTimeMillis();
-            UsageEvents events = usm.queryEvents(end - 8000, end);
+
+            // Prefer recent usage stats (more reliable on many phones)
+            java.util.List<android.app.usage.UsageStats> stats =
+                usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - 3000, end);
+            String best = null;
+            long bestTime = 0;
+            if (stats != null) {
+                for (android.app.usage.UsageStats s : stats) {
+                    long t = s.getLastTimeUsed();
+                    if (t > bestTime) {
+                        bestTime = t;
+                        best = s.getPackageName();
+                    }
+                }
+            }
+            if (best != null && bestTime >= end - 3000) {
+                return best;
+            }
+
+            // Fallback to events
+            UsageEvents events = usm.queryEvents(end - 3000, end);
             UsageEvents.Event ev = new UsageEvents.Event();
             String last = null;
             while (events.hasNextEvent()) {

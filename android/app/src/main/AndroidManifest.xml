@@ -5,8 +5,6 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
-        android:protectionLevel="signature" />
 
     <application
         android:allowBackup="true"
@@ -17,18 +15,20 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:exported="true">
+            android:exported="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- Floating bubble service -->
         <service
             android:name=".FloatingBubbleService"
             android:enabled="true"
@@ -39,6 +39,7 @@
                 android:value="Shows the Anchor support bubble over browsers and social apps" />
         </service>
 
+        <!-- Package-only accessibility monitor -->
         <service
             android:name=".AnchorAppMonitorService"
             android:enabled="true"
@@ -52,6 +53,19 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- Home screen widget -->
+        <receiver
+            android:name=".AnchorWidgetProvider"
+            android:exported="true"
+            android:label="Anchor">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/anchor_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -61,5 +75,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 </manifest>

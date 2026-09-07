@@ -275,35 +275,65 @@ public class FloatingBubbleService extends Service {
         try {
             UsageStatsManager usm = (UsageStatsManager) getSystemService(USAGE_STATS_SERVICE);
             long end = System.currentTimeMillis();
+            long window = 2500;
 
-            // Prefer recent usage stats (more reliable on many phones)
+            // If any TARGET was used recently, prefer that (fixes Chrome flicker/drop)
             java.util.List<android.app.usage.UsageStats> stats =
-                usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - 3000, end);
-            String best = null;
-            long bestTime = 0;
+                usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - window, end);
+            String bestTarget = null;
+            long bestTargetTime = 0;
+            String bestAny = null;
+            long bestAnyTime = 0;
+
             if (stats != null) {
                 for (android.app.usage.UsageStats s : stats) {
+                    String pkg = s.getPackageName();
                     long t = s.getLastTimeUsed();
-                    if (t > bestTime) {
-                        bestTime = t;
-                        best = s.getPackageName();
+                    if (t < end - window) continue;
+
+                    // ignore common noise packages
+                    if (pkg.contains("systemui") ||
+                        pkg.contains("inputmethod") ||
+                        pkg.contains("keyboard") ||
+                        pkg.contains("honeyboard") ||
+                        pkg.contains("launcher") ||
+                        pkg.contains("nexuslauncher") ||
+                        pkg.contains("touchwiz") ||
+                        pkg.equals("com.android.settings")) {
+                        continue;
+                    }
+
+                    if (t > bestAnyTime) {
+                        bestAnyTime = t;
+                        bestAny = pkg;
+                    }
+                    if (TARGETS.contains(pkg) && t > bestTargetTime) {
+                        bestTargetTime = t;
+                        bestTarget = pkg;
                     }
                 }
             }
-            if (best != null && bestTime >= end - 3000) {
-                return best;
-            }
 
-            // Fallback to events
-            UsageEvents events = usm.queryEvents(end - 3000, end);
+            if (bestTarget != null) return bestTarget;
+
+            // Fallback: events
+            UsageEvents events = usm.queryEvents(end - window, end);
             UsageEvents.Event ev = new UsageEvents.Event();
             String last = null;
             while (events.hasNextEvent()) {
                 events.getNextEvent(ev);
                 if (ev.getEventType() == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                    last = ev.getPackageName();
+                    String pkg = ev.getPackageName();
+                    if (pkg == null) continue;
+                    if (pkg.contains("systemui") || pkg.contains("inputmethod") ||
+                        pkg.contains("keyboard") || pkg.contains("launcher")) {
+                        continue;
+                    }
+                    last = pkg;
                 }
             }
+            if (last != null && TARGETS.contains(last)) return last;
+            if (bestAny != null) return bestAny;
             return last;
         } catch (Exception e) {
             return null;

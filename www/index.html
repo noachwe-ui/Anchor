@@ -20,9 +20,13 @@
       <button id="open-settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
     </header>
 
-    <section class="quote-card">
+    <section id="quote-card" class="quote-card">
       <p id="quote-text">Loading...</p>
       <p id="quote-source"></p>
+    </section>
+
+    <section id="image-card" class="image-card" hidden>
+      <img id="home-image" alt="Anchor" />
     </section>
 
     <div class="actions">
@@ -66,6 +70,19 @@
       <input id="chizuk-link" type="url" placeholder="https://..." />
       <button id="add-chizuk-btn" class="btn secondary">Add Link</button>
       <div id="chizuk-list"></div>
+    </section>
+
+    
+    <section class="settings-card">
+      <h2>Home Screen</h2>
+      <p class="hint">Choose what appears at the top</p>
+      <div class="mode-list">
+        <label class="mode-option"><input type="radio" name="home-mode" value="quote"><span>Quote</span></label>
+        <label class="mode-option"><input type="radio" name="home-mode" value="image"><span>Image (top half)</span></label>
+      </div>
+      <input id="home-image-file" type="file" accept="image/*" />
+      <button id="save-home-btn" class="btn primary">Save Home Screen</button>
+      <p id="home-status" class="hint">Image is stored only on this phone</p>
     </section>
 
     <section class="settings-card">

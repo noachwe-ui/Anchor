@@ -26,6 +26,7 @@ public class MainActivity extends BridgeActivity {
         }
 
         startService(new Intent(this, FloatingBubbleService.class));
+        seedWidgetUrls();
         handleClipIntent(getIntent());
 
         // After web loads, sync mode from localStorage
@@ -63,6 +64,19 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleClipIntent(intent);
+    }
+
+    
+    private void seedWidgetUrls() {
+        try {
+            java.io.InputStream is = getAssets().open("public/urls.json");
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(is));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) sb.append(line);
+            br.close();
+            AnchorWidgetProvider.saveClipUrls(this, sb.toString());
+        } catch (Exception ignored) {}
     }
 
     private void handleClipIntent(Intent intent) {

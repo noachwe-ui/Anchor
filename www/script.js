@@ -79,10 +79,9 @@ function showRandomQuote() {
     item.source ? `— ${item.source}` : "";
 }
 
-document.getElementById("new-quote-btn").addEventListener("click", showRandomQuote);
 
-
-document.getElementById("daily-dose-btn").addEventListener("click", () => {
+const dailyBtn = document.getElementById("daily-dose-btn");
+if (dailyBtn) dailyBtn.addEventListener("click", () => {
   if (!dailyDose.length) {
     alert("No Daily Dose links yet. Add them in daily_dose.json");
     return;
@@ -90,7 +89,8 @@ document.getElementById("daily-dose-btn").addEventListener("click", () => {
   window.open(dailyDose[Math.floor(Math.random() * dailyDose.length)], "_blank");
 });
 
-document.getElementById("hillel-btn").addEventListener("click", () => {
+const hillelBtn = document.getElementById("hillel-btn");
+if (hillelBtn) hillelBtn.addEventListener("click", () => {
   if (!hillelLinks.length) {
     alert("No Rabbi Hillel Eisenberg links yet. Add them in hillel_eisenberg.json");
     return;

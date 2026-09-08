@@ -1,41 +1,69 @@
 let quotes = [];
 let urls = [];
+let dailyDose = [];
+let hillelLinks = [];
 
 const REMOTE_QUOTES = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/quotes.json";
 const REMOTE_URLS   = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/urls.json";
+const REMOTE_DAILY  = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/daily_dose.json";
+const REMOTE_HILLEL = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/hillel_eisenberg.json";
 const MODE_KEY = "anchor-bubble-mode";
 
 async function loadData() {
+  // Try remote first
   try {
-    const [qRes, uRes] = await Promise.all([
+    const [qRes, uRes, dRes, hRes] = await Promise.all([
       fetch(REMOTE_QUOTES, { cache: "no-store" }),
-      fetch(REMOTE_URLS, { cache: "no-store" })
+      fetch(REMOTE_URLS, { cache: "no-store" }),
+      fetch(REMOTE_DAILY, { cache: "no-store" }),
+      fetch(REMOTE_HILLEL, { cache: "no-store" })
     ]);
-    if (qRes.ok && uRes.ok) {
+    if (qRes.ok) {
       quotes = await qRes.json();
-      urls = await uRes.json();
       localStorage.setItem("anchor-quotes-cache", JSON.stringify(quotes));
-      localStorage.setItem("anchor-urls-cache", JSON.stringify(urls));
-      showRandomQuote();
-      return;
     }
+    if (uRes.ok) {
+      urls = await uRes.json();
+      localStorage.setItem("anchor-urls-cache", JSON.stringify(urls));
+    }
+    if (dRes.ok) {
+      dailyDose = await dRes.json();
+      localStorage.setItem("anchor-daily-cache", JSON.stringify(dailyDose));
+    }
+    if (hRes.ok) {
+      hillelLinks = await hRes.json();
+      localStorage.setItem("anchor-hillel-cache", JSON.stringify(hillelLinks));
+    }
+    if (quotes.length) showRandomQuote();
+    if (quotes.length || urls.length || dailyDose.length || hillelLinks.length) return;
   } catch (e) {}
 
+  // Local cache
   try {
     const cq = localStorage.getItem("anchor-quotes-cache");
     const cu = localStorage.getItem("anchor-urls-cache");
-    if (cq && cu) {
-      quotes = JSON.parse(cq);
-      urls = JSON.parse(cu);
-      showRandomQuote();
-      return;
-    }
+    const cd = localStorage.getItem("anchor-daily-cache");
+    const ch = localStorage.getItem("anchor-hillel-cache");
+    if (cq) quotes = JSON.parse(cq);
+    if (cu) urls = JSON.parse(cu);
+    if (cd) dailyDose = JSON.parse(cd);
+    if (ch) hillelLinks = JSON.parse(ch);
+    if (quotes.length) showRandomQuote();
+    if (quotes.length || urls.length || dailyDose.length || hillelLinks.length) return;
   } catch (e) {}
 
+  // Bundled files
   try {
-    const [qRes, uRes] = await Promise.all([fetch("quotes.json"), fetch("urls.json")]);
-    quotes = await qRes.json();
-    urls = await uRes.json();
+    const [qRes, uRes, dRes, hRes] = await Promise.all([
+      fetch("quotes.json"),
+      fetch("urls.json"),
+      fetch("daily_dose.json"),
+      fetch("hillel_eisenberg.json")
+    ]);
+    if (qRes.ok) quotes = await qRes.json();
+    if (uRes.ok) urls = await uRes.json();
+    if (dRes.ok) dailyDose = await dRes.json();
+    if (hRes.ok) hillelLinks = await hRes.json();
     showRandomQuote();
   } catch (err) {
     document.getElementById("quote-text").textContent =
@@ -52,6 +80,23 @@ function showRandomQuote() {
 }
 
 document.getElementById("new-quote-btn").addEventListener("click", showRandomQuote);
+
+
+document.getElementById("daily-dose-btn").addEventListener("click", () => {
+  if (!dailyDose.length) {
+    alert("No Daily Dose links yet. Add them in daily_dose.json");
+    return;
+  }
+  window.open(dailyDose[Math.floor(Math.random() * dailyDose.length)], "_blank");
+});
+
+document.getElementById("hillel-btn").addEventListener("click", () => {
+  if (!hillelLinks.length) {
+    alert("No Rabbi Hillel Eisenberg links yet. Add them in hillel_eisenberg.json");
+    return;
+  }
+  window.open(hillelLinks[Math.floor(Math.random() * hillelLinks.length)], "_blank");
+});
 
 document.getElementById("clip-btn").addEventListener("click", () => {
   if (!urls.length) {

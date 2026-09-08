@@ -3,12 +3,11 @@ package com.anchor.app;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 
 public class AnchorWidgetConfigureActivity extends Activity {
     public static final String PREFS = "anchor_widget_prefs";
-    public static final String KEY_ACTION = "widget_action_"; // + id
+    public static final String KEY_ACTION_PREFIX = "widget_action_";
 
     public static final String ACTION_VAYIMAEN = "vayimaen";
     public static final String ACTION_DAILY = "daily";
@@ -21,12 +20,14 @@ public class AnchorWidgetConfigureActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setResult(RESULT_CANCELED);
-        setContentView(R.layout.activity_widget_configure);
+        setContentView(R.layout.activity_anchor_widget_configure);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            appWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID,
-                AppWidgetManager.INVALID_APPWIDGET_ID);
+            appWidgetId = extras.getInt(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            );
         }
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish();
@@ -41,7 +42,9 @@ public class AnchorWidgetConfigureActivity extends Activity {
 
     private void finishWith(String action) {
         getSharedPreferences(PREFS, MODE_PRIVATE)
-            .edit().putString(KEY_ACTION + appWidgetId, action).apply();
+            .edit()
+            .putString(KEY_ACTION_PREFIX + appWidgetId, action)
+            .apply();
 
         AppWidgetManager manager = AppWidgetManager.getInstance(this);
         AnchorWidgetProvider.updateWidget(this, manager, appWidgetId);

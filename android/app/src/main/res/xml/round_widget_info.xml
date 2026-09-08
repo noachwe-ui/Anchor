@@ -8,6 +8,7 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_round"
+    android:previewImage="@mipmap/ic_launcher"
     android:configure="com.anchor.app.RoundWidgetConfigureActivity"
     android:widgetCategory="home_screen"
     android:description="@string/round_widget_description" />

@@ -29,14 +29,12 @@ public class RoundWidgetProvider extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         if (!ACTION_CLICK.equals(intent.getAction())) return;
-
         int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID);
-        SharedPreferences prefs = context.getSharedPreferences(
-            RoundWidgetConfigureActivity.PREFS, Context.MODE_PRIVATE);
-        String action = prefs.getString(
-            RoundWidgetConfigureActivity.KEY_ACTION_PREFIX + id,
-            RoundWidgetConfigureActivity.ACTION_OPEN_APP);
+        String action = context.getSharedPreferences(
+            RoundWidgetConfigureActivity.PREFS, Context.MODE_PRIVATE)
+            .getString(RoundWidgetConfigureActivity.KEY_ACTION_PREFIX + id,
+                RoundWidgetConfigureActivity.ACTION_OPEN_APP);
 
         if (RoundWidgetConfigureActivity.ACTION_OPEN_CLIP.equals(action)) {
             openRandomClip(context);
@@ -50,7 +48,7 @@ public class RoundWidgetProvider extends AppWidgetProvider {
     private void openRandomClip(Context context) {
         List<String> urls = loadUrls(context);
         if (urls.isEmpty()) {
-            Toast.makeText(context, "No clips available yet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "No clips available yet. Open Anchor once first.", Toast.LENGTH_SHORT).show();
             return;
         }
         String link = urls.get(new Random().nextInt(urls.size()));
@@ -99,8 +97,7 @@ public class RoundWidgetProvider extends AppWidgetProvider {
         Intent click = new Intent(context, RoundWidgetProvider.class);
         click.setAction(ACTION_CLICK);
         click.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
-        PendingIntent pi = PendingIntent.getBroadcast(
-            context, id, click,
+        PendingIntent pi = PendingIntent.getBroadcast(context, id, click,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.round_btn, pi);
         manager.updateAppWidget(id, views);

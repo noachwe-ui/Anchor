@@ -29,5 +29,5 @@
         android:id="@+id/btn_open_clip"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Watch a Clip (direct link)" />
+        android:text="Vayimaen (direct link)" />
 </LinearLayout>

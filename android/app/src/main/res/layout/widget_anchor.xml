@@ -36,7 +36,7 @@
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
         android:gravity="center"
-        android:text="Watch a Clip"
+        android:text="Vayimaen"
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:textStyle="bold"

@@ -1,1 +1,7 @@
-[]
+nano www/hillel_eisenberg.json
+nano www/urls.json
+nano www/quotes.json
+
+git add www/*.json
+git commit -m "Update content JSON files"
+git push origin main[]

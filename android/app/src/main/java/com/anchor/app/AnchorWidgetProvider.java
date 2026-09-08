@@ -3,6 +3,7 @@ package com.anchor.app;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,7 +12,6 @@ import android.widget.RemoteViews;
 import java.util.Random;
 
 public class AnchorWidgetProvider extends AppWidgetProvider {
-
     public static final String ACTION_OPEN_APP = "com.anchor.app.WIDGET_OPEN_APP";
     public static final String ACTION_OPEN_CLIP = "com.anchor.app.WIDGET_OPEN_CLIP";
     public static final String PREFS = "anchor_widget_prefs";
@@ -43,41 +43,39 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             i.putExtra("open_clip", true);
             context.startActivity(i);
+        } else if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(action)) {
+            AppWidgetManager manager = AppWidgetManager.getInstance(context);
+            int[] ids = manager.getAppWidgetIds(new ComponentName(context, AnchorWidgetProvider.class));
+            onUpdate(context, manager, ids);
         }
     }
 
     static void updateWidget(Context context, AppWidgetManager manager, int id) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_anchor);
-
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        String bg = prefs.getString(KEY_BG, "#FAF8F5");
         try {
-            views.setInt(R.id.widget_root, "setBackgroundColor", Color.parseColor(bg));
+            views.setInt(R.id.widget_root, "setBackgroundColor",
+                Color.parseColor(prefs.getString(KEY_BG, "#FAF8F5")));
         } catch (Exception ignored) {}
 
         views.setTextViewText(R.id.widget_message, MESSAGES[new Random().nextInt(MESSAGES.length)]);
 
-        // Tap body -> open app
         Intent openApp = new Intent(context, AnchorWidgetProvider.class);
         openApp.setAction(ACTION_OPEN_APP);
-        PendingIntent piApp = PendingIntent.getBroadcast(
-            context, 1, openApp,
+        PendingIntent piApp = PendingIntent.getBroadcast(context, 1, openApp,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_title, piApp);
         views.setOnClickPendingIntent(R.id.widget_message, piApp);
 
-        // Clip button
         Intent openClip = new Intent(context, AnchorWidgetProvider.class);
         openClip.setAction(ACTION_OPEN_CLIP);
-        PendingIntent piClip = PendingIntent.getBroadcast(
-            context, 2, openClip,
+        PendingIntent piClip = PendingIntent.getBroadcast(context, 2, openClip,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_clip_btn, piClip);
 
         manager.updateAppWidget(id, views);
     }
 
-    // Call this from the app to change widget background, e.g. "#FFF3E8"
     public static void setBackgroundColor(Context context, String hexColor) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_BG, hexColor).apply();

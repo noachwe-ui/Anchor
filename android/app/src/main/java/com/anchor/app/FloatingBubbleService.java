@@ -4,12 +4,17 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.app.usage.UsageEvents;
+import android.app.usage.UsageStatsManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -17,21 +22,44 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class FloatingBubbleService extends Service {
     public static final String ACTION_SHOW = "com.anchor.app.SHOW_BUBBLE";
     public static final String ACTION_HIDE = "com.anchor.app.HIDE_BUBBLE";
+    public static final String ACTION_APPLY_MODE = "com.anchor.app.APPLY_MODE";
 
     private WindowManager wm;
     private View bubble;
     private View removeZone;
     private WindowManager.LayoutParams bubbleParams;
     private WindowManager.LayoutParams removeParams;
+    private Handler handler;
     private boolean visible = false;
     private boolean removeVisible = false;
     private boolean userHidden = false;
     private boolean isDragging = false;
     private int screenHeight;
+    private String mode = "always";
+    private int missCount = 0;
+
+    private static final Set<String> TARGETS = new HashSet<>(Arrays.asList(
+        "com.android.chrome", "com.chrome.beta", "com.chrome.dev",
+        "com.sec.android.app.sbrowser", "org.mozilla.firefox",
+        "org.mozilla.firefox_beta", "com.opera.browser", "com.brave.browser",
+        "com.microsoft.emmx", "com.duckduckgo.mobile.android",
+        "com.google.android.youtube",
+        "com.whatsapp", "com.whatsapp.w4b",
+        "com.instagram.android", "com.facebook.katana", "com.facebook.lite",
+        "com.facebook.orca", "com.facebook.mlite",
+        "com.zhiliaoapp.musically", "com.ss.android.ugc.trill",
+        "com.twitter.android", "com.snapchat.android", "com.reddit.frontpage",
+        "org.telegram.messenger", "org.telegram.messenger.web",
+        "com.discord", "com.pinterest", "com.linkedin.android"
+    ));
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -45,20 +73,117 @@ public class FloatingBubbleService extends Service {
         screenHeight = dm.heightPixels;
         makeBubble();
         makeRemoveZone();
+        handler = new Handler(Looper.getMainLooper());
+        mode = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE)
+            .getString(MainActivity.KEY_MODE, "always");
+        applyMode();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
-            if (ACTION_SHOW.equals(action)) {
-                if (!userHidden) showBubble();
+            if (ACTION_APPLY_MODE.equals(action)) {
+                String m = intent.getStringExtra("mode");
+                if (m != null && !m.isEmpty()) {
+                    mode = m;
+                    userHidden = false;
+                    applyMode();
+                }
+            } else if (ACTION_SHOW.equals(action)) {
+                if ("accessibility".equals(mode) && !userHidden) showBubble();
             } else if (ACTION_HIDE.equals(action)) {
-                userHidden = false;
-                hideBubble();
+                if ("accessibility".equals(mode)) {
+                    userHidden = false;
+                    hideBubble();
+                }
             }
         }
         return START_STICKY;
+    }
+
+    private void applyMode() {
+        if (handler != null) handler.removeCallbacksAndMessages(null);
+        switch (mode) {
+            case "off":
+                hideBubble();
+                break;
+            case "always":
+                if (!userHidden) showBubble();
+                break;
+            case "targets":
+                handler.post(targetsRunnable);
+                break;
+            case "accessibility":
+                // wait for Accessibility SHOW/HIDE
+                break;
+            default:
+                if (!userHidden) showBubble();
+        }
+    }
+
+    private final Runnable targetsRunnable = new Runnable() {
+        @Override public void run() {
+            if (!"targets".equals(mode)) return;
+            if (isDragging) {
+                handler.postDelayed(this, 500);
+                return;
+            }
+            String fg = getForegroundApp();
+            boolean onTarget = fg != null && (TARGETS.contains(fg)
+                || fg.contains("chrome") || fg.contains("whatsapp"));
+            if (onTarget) {
+                missCount = 0;
+                if (!userHidden) showBubble();
+            } else {
+                missCount++;
+                if (missCount >= 5) {
+                    userHidden = false;
+                    hideBubble();
+                }
+            }
+            handler.postDelayed(this, 500);
+        }
+    };
+
+    private String getForegroundApp() {
+        try {
+            UsageStatsManager usm = (UsageStatsManager) getSystemService(USAGE_STATS_SERVICE);
+            long end = System.currentTimeMillis();
+            List<android.app.usage.UsageStats> stats =
+                usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - 2500, end);
+            String bestTarget = null; long bestTargetTime = 0;
+            String bestAny = null; long bestAnyTime = 0;
+            if (stats != null) {
+                for (android.app.usage.UsageStats s : stats) {
+                    String pkg = s.getPackageName();
+                    long t = s.getLastTimeUsed();
+                    if (t < end - 2500) continue;
+                    if (pkg.contains("systemui") || pkg.contains("inputmethod")
+                        || pkg.contains("keyboard") || pkg.contains("launcher")) continue;
+                    if (t > bestAnyTime) { bestAnyTime = t; bestAny = pkg; }
+                    if (TARGETS.contains(pkg) && t > bestTargetTime) {
+                        bestTargetTime = t; bestTarget = pkg;
+                    }
+                }
+            }
+            if (bestTarget != null) return bestTarget;
+            UsageEvents events = usm.queryEvents(end - 2500, end);
+            UsageEvents.Event ev = new UsageEvents.Event();
+            String last = null;
+            while (events.hasNextEvent()) {
+                events.getNextEvent(ev);
+                if (ev.getEventType() == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    String pkg = ev.getPackageName();
+                    if (pkg != null && !pkg.contains("systemui") && !pkg.contains("inputmethod"))
+                        last = pkg;
+                }
+            }
+            if (last != null && TARGETS.contains(last)) return last;
+            return bestAny != null ? bestAny : last;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void startAsForeground() {
@@ -206,6 +331,7 @@ public class FloatingBubbleService extends Service {
 
     private void showBubble() {
         if (bubble == null || bubbleParams == null) return;
+        if ("off".equals(mode)) return;
         try {
             if (!visible) {
                 wm.addView(bubble, bubbleParams);
@@ -232,6 +358,7 @@ public class FloatingBubbleService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (handler != null) handler.removeCallbacksAndMessages(null);
         hideRemoveZone();
         if (visible && bubble != null) {
             try { wm.removeView(bubble); } catch (Exception ignored) {}

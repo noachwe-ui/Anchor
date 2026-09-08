@@ -77,15 +77,7 @@ document.getElementById("save-note-btn").addEventListener("click", () => {
   alert("Note saved on this device.");
 });
 
-// Bubble toggle
-const bubbleToggle = document.getElementById("bubble-toggle");
-bubbleToggle.checked = localStorage.getItem("anchor-bubble") === "true";
-bubbleToggle.addEventListener("change", () => {
-  localStorage.setItem("anchor-bubble", bubbleToggle.checked);
-  alert(bubbleToggle.checked
-    ? "Bubble will appear next time you open the app"
-    : "Bubble disabled");
-});
+
 
 // Multiple Chizuk links
 function getChizukLinks() {
@@ -183,4 +175,35 @@ document.getElementById("chizuk-btn").addEventListener("click", () => {
 
 renderChizukList();
 updateChizukButton();
+
+// Bubble mode settings
+const MODE_KEY = "anchor-bubble-mode";
+
+function getMode() {
+  return localStorage.getItem(MODE_KEY) || "always";
+}
+
+function setMode(mode) {
+  localStorage.setItem(MODE_KEY, mode);
+}
+
+function loadModeUI() {
+  const mode = getMode();
+  const input = document.querySelector(`input[name="bubble-mode"][value="${mode}"]`);
+  if (input) input.checked = true;
+  const status = document.getElementById("mode-status");
+  if (status) status.textContent = "Current mode: " + mode;
+}
+
+document.getElementById("save-mode-btn").addEventListener("click", () => {
+  const selected = document.querySelector('input[name="bubble-mode"]:checked');
+  if (!selected) return;
+  setMode(selected.value);
+  document.getElementById("mode-status").textContent =
+    "Saved: " + selected.value + ". Reopen Anchor once so native side can apply it.";
+  alert("Bubble mode saved: " + selected.value);
+});
+
+loadModeUI();
+
 loadData();

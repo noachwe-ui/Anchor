@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Anchor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +24,7 @@
     <div class="actions">
       <button id="clip-btn" class="btn primary">Watch a Clip</button>
       <button id="new-quote-btn" class="btn secondary">Inspire Me ✨</button>
-      <button id="chizuk-btn" class="btn secondary" style="display:none;">My Chizuk 💛</button>
+      <button id="chizuk-btn" class="btn secondary" style="display:none;">My Chizuk</button>
     </div>
 
     <section class="personal">
@@ -36,20 +36,34 @@
     <section class="settings">
       <h2>Settings</h2>
 
-      <div class="setting-row">
-        <label>Floating Bubble</label>
-        <input type="checkbox" id="bubble-toggle">
+      <h3 class="settings-label">Floating Bubble</h3>
+      <div class="mode-list">
+        <label class="mode-option">
+          <input type="radio" name="bubble-mode" value="off">
+          <span>Off</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="bubble-mode" value="always">
+          <span>Always on</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="bubble-mode" value="targets">
+          <span>Browsers & social apps</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="bubble-mode" value="accessibility">
+          <span>Accessibility detection</span>
+        </label>
       </div>
+      <button id="save-mode-btn" class="btn primary">Save Bubble Mode</button>
+      <p id="mode-status" class="hint"></p>
 
-      <div class="setting-row">
-        <label>My Chizuk Links</label>
-        <div id="chizuk-list"></div>
-        <input type="url" id="chizuk-link" placeholder="https://...">
-        <button id="add-chizuk-btn" class="btn secondary small">Add Link</button>
-      </div>
+      <h3 class="settings-label">My Chizuk Links</h3>
+      <input id="chizuk-link" type="url" placeholder="https://..." />
+      <button id="add-chizuk-btn" class="btn secondary">Add Link</button>
+      <div id="chizuk-list"></div>
     </section>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>

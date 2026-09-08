@@ -194,3 +194,57 @@ textarea::placeholder {
   height: 22px;
   accent-color: var(--accent);
 }
+
+.settings {
+  margin-top: 28px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+}
+
+.settings-label {
+  margin: 18px 0 10px;
+  font-size: 1rem;
+  color: #3d3a36;
+}
+
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fdfbf8;
+  border: 2px solid #f0ebe3;
+  font-weight: 600;
+  color: #3d3a36;
+}
+
+.mode-option input {
+  width: 18px;
+  height: 18px;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #8a847c;
+}
+
+#chizuk-link {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid #f0ebe3;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  font-family: 'Nunito', sans-serif;
+}

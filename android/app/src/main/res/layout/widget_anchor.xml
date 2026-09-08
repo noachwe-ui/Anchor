@@ -41,5 +41,4 @@
         android:textSize="14sp"
         android:textStyle="bold"
         android:background="@drawable/widget_button" />
-
 </LinearLayout>

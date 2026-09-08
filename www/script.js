@@ -3,46 +3,39 @@ let urls = [];
 
 const REMOTE_QUOTES = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/quotes.json";
 const REMOTE_URLS   = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/urls.json";
+const MODE_KEY = "anchor-bubble-mode";
 
 async function loadData() {
-  // 1) Try remote (GitHub)
   try {
     const [qRes, uRes] = await Promise.all([
       fetch(REMOTE_QUOTES, { cache: "no-store" }),
-      fetch(REMOTE_URLS,   { cache: "no-store" })
+      fetch(REMOTE_URLS, { cache: "no-store" })
     ]);
     if (qRes.ok && uRes.ok) {
       quotes = await qRes.json();
-      urls   = await uRes.json();
+      urls = await uRes.json();
       localStorage.setItem("anchor-quotes-cache", JSON.stringify(quotes));
-      localStorage.setItem("anchor-urls-cache",   JSON.stringify(urls));
-      showRandomQuote();
-      return;
-    }
-  } catch (e) {
-    // offline or remote failed — fall through
-  }
-
-  // 2) Try local cache
-  try {
-    const cq = localStorage.getItem("anchor-quotes-cache");
-    const cu = localStorage.getItem("anchor-urls-cache");
-    if (cq && cu) {
-      quotes = JSON.parse(cq);
-      urls   = JSON.parse(cu);
+      localStorage.setItem("anchor-urls-cache", JSON.stringify(urls));
       showRandomQuote();
       return;
     }
   } catch (e) {}
 
-  // 3) Fallback to bundled files inside the APK
   try {
-    const [qRes, uRes] = await Promise.all([
-      fetch("quotes.json"),
-      fetch("urls.json")
-    ]);
+    const cq = localStorage.getItem("anchor-quotes-cache");
+    const cu = localStorage.getItem("anchor-urls-cache");
+    if (cq && cu) {
+      quotes = JSON.parse(cq);
+      urls = JSON.parse(cu);
+      showRandomQuote();
+      return;
+    }
+  } catch (e) {}
+
+  try {
+    const [qRes, uRes] = await Promise.all([fetch("quotes.json"), fetch("urls.json")]);
     quotes = await qRes.json();
-    urls   = await uRes.json();
+    urls = await uRes.json();
     showRandomQuote();
   } catch (err) {
     document.getElementById("quote-text").textContent =
@@ -69,7 +62,7 @@ document.getElementById("clip-btn").addEventListener("click", () => {
   window.open(link, "_blank");
 });
 
-// Personal note
+// Notes
 const noteEl = document.getElementById("personal-note");
 noteEl.value = localStorage.getItem("anchor-note") || "";
 document.getElementById("save-note-btn").addEventListener("click", () => {
@@ -77,15 +70,45 @@ document.getElementById("save-note-btn").addEventListener("click", () => {
   alert("Note saved on this device.");
 });
 
+// Screen navigation
+const mainScreen = document.getElementById("screen-main");
+const settingsScreen = document.getElementById("screen-settings");
 
+document.getElementById("open-settings-btn").addEventListener("click", () => {
+  mainScreen.hidden = true;
+  settingsScreen.hidden = false;
+});
 
-// Multiple Chizuk links
+document.getElementById("back-main-btn").addEventListener("click", () => {
+  settingsScreen.hidden = true;
+  mainScreen.hidden = false;
+});
+
+// Bubble mode
+function getMode() {
+  return localStorage.getItem(MODE_KEY) || "always";
+}
+
+function loadModeUI() {
+  const mode = getMode();
+  const input = document.querySelector(`input[name="bubble-mode"][value="${mode}"]`);
+  if (input) input.checked = true;
+  document.getElementById("mode-status").textContent = "Current mode: " + mode;
+}
+
+document.getElementById("save-mode-btn").addEventListener("click", () => {
+  const selected = document.querySelector('input[name="bubble-mode"]:checked');
+  if (!selected) return;
+  localStorage.setItem(MODE_KEY, selected.value);
+  document.getElementById("mode-status").textContent =
+    "Saved: " + selected.value + ". Reopen Anchor once to apply.";
+  alert("Bubble mode saved: " + selected.value);
+});
+
+// Chizuk links
 function getChizukLinks() {
-  try {
-    return JSON.parse(localStorage.getItem("anchor-chizuk-links") || "[]");
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem("anchor-chizuk-links") || "[]"); }
+  catch { return []; }
 }
 
 function saveChizukLinks(links) {
@@ -96,42 +119,20 @@ function renderChizukList() {
   const list = document.getElementById("chizuk-list");
   const links = getChizukLinks();
   list.innerHTML = "";
-
   links.forEach((link, index) => {
     const row = document.createElement("div");
-    row.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:10px;";
+    row.style.cssText = "display:flex;align-items:center;gap:8px;margin:8px 0;";
 
     const linkBtn = document.createElement("button");
-    linkBtn.textContent = link.length > 38 ? link.substring(0, 35) + "..." : link;
-    linkBtn.style.cssText = `
-      flex: 1;
-      text-align: left;
-      background: #fdfbf8;
-      border: 2px solid #f0ebe3;
-      border-radius: 14px;
-      padding: 10px 14px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 0.9rem;
-      color: var(--text);
-      cursor: pointer;
-    `;
+    linkBtn.className = "btn secondary";
+    linkBtn.style.cssText = "flex:1;text-align:left;font-size:0.9rem;padding:10px 12px;";
+    linkBtn.textContent = link.length > 40 ? link.slice(0, 37) + "..." : link;
     linkBtn.onclick = () => window.open(link, "_blank");
 
     const delBtn = document.createElement("button");
     delBtn.textContent = "✕";
-    delBtn.style.cssText = `
-      background: #ff6b6b;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      font-size: 13px;
-      cursor: pointer;
-      flex-shrink: 0;
-    `;
-    delBtn.onclick = (e) => {
-      e.stopPropagation();
+    delBtn.style.cssText = "background:#ff6b6b;color:#fff;border:none;border-radius:50%;width:28px;height:28px;";
+    delBtn.onclick = () => {
       links.splice(index, 1);
       saveChizukLinks(links);
       renderChizukList();
@@ -146,15 +147,13 @@ function renderChizukList() {
 
 function updateChizukButton() {
   const btn = document.getElementById("chizuk-btn");
-  const links = getChizukLinks();
-  btn.style.display = links.length > 0 ? "block" : "none";
+  btn.style.display = getChizukLinks().length ? "block" : "none";
 }
 
 document.getElementById("add-chizuk-btn").addEventListener("click", () => {
   const input = document.getElementById("chizuk-link");
   const link = input.value.trim();
   if (!link) return;
-
   const links = getChizukLinks();
   if (!links.includes(link)) {
     links.push(link);
@@ -168,42 +167,11 @@ document.getElementById("add-chizuk-btn").addEventListener("click", () => {
 
 document.getElementById("chizuk-btn").addEventListener("click", () => {
   const links = getChizukLinks();
-  if (links.length === 0) return;
-  const link = links[Math.floor(Math.random() * links.length)];
-  window.open(link, "_blank");
-});
-
-renderChizukList();
-updateChizukButton();
-
-// Bubble mode settings
-const MODE_KEY = "anchor-bubble-mode";
-
-function getMode() {
-  return localStorage.getItem(MODE_KEY) || "always";
-}
-
-function setMode(mode) {
-  localStorage.setItem(MODE_KEY, mode);
-}
-
-function loadModeUI() {
-  const mode = getMode();
-  const input = document.querySelector(`input[name="bubble-mode"][value="${mode}"]`);
-  if (input) input.checked = true;
-  const status = document.getElementById("mode-status");
-  if (status) status.textContent = "Current mode: " + mode;
-}
-
-document.getElementById("save-mode-btn").addEventListener("click", () => {
-  const selected = document.querySelector('input[name="bubble-mode"]:checked');
-  if (!selected) return;
-  setMode(selected.value);
-  document.getElementById("mode-status").textContent =
-    "Saved: " + selected.value + ". Reopen Anchor once so native side can apply it.";
-  alert("Bubble mode saved: " + selected.value);
+  if (!links.length) return;
+  window.open(links[Math.floor(Math.random() * links.length)], "_blank");
 });
 
 loadModeUI();
-
+renderChizukList();
+updateChizukButton();
 loadData();

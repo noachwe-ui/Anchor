@@ -55,10 +55,10 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID);
         String action = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(AnchorWidgetConfigureActivity.KEY_ACTION_PREFIX + id,
-                AnchorWidgetConfigureActivity.ACTION_VAYIMAEN);
+            .getString("widget_action_" + id,
+                "vayimaen");
 
-        if (AnchorWidgetConfigureActivity.ACTION_OPEN_APP.equals(action)) {
+        if ("open_app".equals(action)) {
             Intent i = new Intent(context, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             context.startActivity(i);
@@ -67,10 +67,10 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
 
         List<String> urls;
         String emptyMsg;
-        if (AnchorWidgetConfigureActivity.ACTION_DAILY.equals(action)) {
+        if ("daily".equals(action)) {
             urls = loadList(context, KEY_DAILY, "public/daily_dose.json");
             emptyMsg = "No Daily Dose links yet. Open Anchor online once.";
-        } else if (AnchorWidgetConfigureActivity.ACTION_HILLEL.equals(action)) {
+        } else if ("hillel".equals(action)) {
             urls = loadList(context, KEY_HILLEL, "public/hillel_eisenberg.json");
             emptyMsg = "No Hillel links yet. Open Anchor online once.";
         } else {
@@ -134,12 +134,12 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
             MESSAGES[new Random().nextInt(MESSAGES.length)]);
 
         String action = prefs.getString(
-            AnchorWidgetConfigureActivity.KEY_ACTION_PREFIX + id,
-            AnchorWidgetConfigureActivity.ACTION_VAYIMAEN);
+            "widget_action_" + id,
+            "vayimaen");
         String label =
-            AnchorWidgetConfigureActivity.ACTION_DAILY.equals(action) ? "Daily Dose" :
-            AnchorWidgetConfigureActivity.ACTION_HILLEL.equals(action) ? "Rabbi Hillel Eisenberg" :
-            AnchorWidgetConfigureActivity.ACTION_OPEN_APP.equals(action) ? "Open Anchor" :
+            "daily".equals(action) ? "Daily Dose" :
+            "hillel".equals(action) ? "Rabbi Hillel Eisenberg" :
+            "open_app".equals(action) ? "Open Anchor" :
             "Vayimaen";
         views.setTextViewText(R.id.widget_clip_btn, label);
 

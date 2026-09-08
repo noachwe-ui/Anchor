@@ -20,11 +20,12 @@ import java.util.List;
 import java.util.Random;
 
 public class AnchorWidgetProvider extends AppWidgetProvider {
-    public static final String ACTION_OPEN_APP = "com.anchor.app.WIDGET_OPEN_APP";
-    public static final String ACTION_OPEN_CLIP = "com.anchor.app.WIDGET_OPEN_CLIP";
+    public static final String ACTION_CLICK = "com.anchor.app.WIDGET_CLICK";
     public static final String PREFS = "anchor_widget_prefs";
     public static final String KEY_BG = "bg_color";
     public static final String KEY_URLS = "clip_urls";
+    public static final String KEY_DAILY = "daily_urls";
+    public static final String KEY_HILLEL = "hillel_urls";
 
     private static final String[] MESSAGES = {
         "Take a breath. You're doing great.",
@@ -42,24 +43,43 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        String action = intent.getAction();
-        if (ACTION_OPEN_APP.equals(action)) {
+        if (!ACTION_CLICK.equals(intent.getAction())) {
+            if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(intent.getAction())) {
+                AppWidgetManager manager = AppWidgetManager.getInstance(context);
+                int[] ids = manager.getAppWidgetIds(new ComponentName(context, AnchorWidgetProvider.class));
+                onUpdate(context, manager, ids);
+            }
+            return;
+        }
+
+        int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID);
+        String action = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(AnchorWidgetConfigureActivity.KEY_ACTION_PREFIX + id,
+                AnchorWidgetConfigureActivity.ACTION_VAYIMAEN);
+
+        if (AnchorWidgetConfigureActivity.ACTION_OPEN_APP.equals(action)) {
             Intent i = new Intent(context, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             context.startActivity(i);
-        } else if (ACTION_OPEN_CLIP.equals(action)) {
-            openRandomClip(context);
-        } else if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(action)) {
-            AppWidgetManager manager = AppWidgetManager.getInstance(context);
-            int[] ids = manager.getAppWidgetIds(new ComponentName(context, AnchorWidgetProvider.class));
-            onUpdate(context, manager, ids);
+            return;
         }
-    }
 
-    private void openRandomClip(Context context) {
-        List<String> urls = loadUrls(context);
+        List<String> urls;
+        String emptyMsg;
+        if (AnchorWidgetConfigureActivity.ACTION_DAILY.equals(action)) {
+            urls = loadList(context, KEY_DAILY, "public/daily_dose.json");
+            emptyMsg = "No Daily Dose links yet. Open Anchor online once.";
+        } else if (AnchorWidgetConfigureActivity.ACTION_HILLEL.equals(action)) {
+            urls = loadList(context, KEY_HILLEL, "public/hillel_eisenberg.json");
+            emptyMsg = "No Hillel links yet. Open Anchor online once.";
+        } else {
+            urls = loadList(context, KEY_URLS, "public/urls.json");
+            emptyMsg = "No Vayimaen links yet. Open Anchor online once.";
+        }
+
         if (urls.isEmpty()) {
-            Toast.makeText(context, "No clips available yet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, emptyMsg, Toast.LENGTH_SHORT).show();
             return;
         }
         String link = urls.get(new Random().nextInt(urls.size()));
@@ -68,17 +88,15 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
             view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(view);
         } catch (Exception e) {
-            Toast.makeText(context, "Could not open clip", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private List<String> loadUrls(Context context) {
+    private List<String> loadList(Context context, String prefKey, String assetPath) {
         List<String> urls = new ArrayList<>();
-
-        // 1) SharedPreferences (updated when app opens)
         try {
             String json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString(KEY_URLS, "");
+                .getString(prefKey, "");
             if (json != null && !json.isEmpty()) {
                 JSONArray arr = new JSONArray(json);
                 for (int i = 0; i < arr.length(); i++) {
@@ -87,12 +105,9 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
                 }
             }
         } catch (Exception ignored) {}
-
         if (!urls.isEmpty()) return urls;
-
-        // 2) Bundled assets/public/urls.json
         try {
-            InputStream is = context.getAssets().open("public/urls.json");
+            InputStream is = context.getAssets().open(assetPath);
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             StringBuilder sb = new StringBuilder();
             String line;
@@ -104,7 +119,6 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
                 if (u.startsWith("http")) urls.add(u);
             }
         } catch (Exception ignored) {}
-
         return urls;
     }
 
@@ -119,20 +133,47 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_message,
             MESSAGES[new Random().nextInt(MESSAGES.length)]);
 
-        Intent openApp = new Intent(context, AnchorWidgetProvider.class);
-        openApp.setAction(ACTION_OPEN_APP);
-        PendingIntent piApp = PendingIntent.getBroadcast(context, 1, openApp,
+        String action = prefs.getString(
+            AnchorWidgetConfigureActivity.KEY_ACTION_PREFIX + id,
+            AnchorWidgetConfigureActivity.ACTION_VAYIMAEN);
+        String label =
+            AnchorWidgetConfigureActivity.ACTION_DAILY.equals(action) ? "Daily Dose" :
+            AnchorWidgetConfigureActivity.ACTION_HILLEL.equals(action) ? "Rabbi Hillel Eisenberg" :
+            AnchorWidgetConfigureActivity.ACTION_OPEN_APP.equals(action) ? "Open Anchor" :
+            "Vayimaen";
+        views.setTextViewText(R.id.widget_clip_btn, label);
+
+        Intent click = new Intent(context, AnchorWidgetProvider.class);
+        click.setAction(ACTION_CLICK);
+        click.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        PendingIntent pi = PendingIntent.getBroadcast(context, id, click,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.widget_clip_btn, pi);
+
+        // Title/message still open app
+        Intent openApp = new Intent(context, MainActivity.class);
+        openApp.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent piApp = PendingIntent.getActivity(context, id + 1000, openApp,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_title, piApp);
         views.setOnClickPendingIntent(R.id.widget_message, piApp);
 
-        Intent openClip = new Intent(context, AnchorWidgetProvider.class);
-        openClip.setAction(ACTION_OPEN_CLIP);
-        PendingIntent piClip = PendingIntent.getBroadcast(context, 2, openClip,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_clip_btn, piClip);
-
         manager.updateAppWidget(id, views);
+    }
+
+    public static void saveClipUrls(Context context, String jsonArray) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_URLS, jsonArray).apply();
+    }
+
+    public static void saveDailyUrls(Context context, String jsonArray) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_DAILY, jsonArray).apply();
+    }
+
+    public static void saveHillelUrls(Context context, String jsonArray) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_HILLEL, jsonArray).apply();
     }
 
     public static void setBackgroundColor(Context context, String hexColor) {
@@ -141,11 +182,5 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         Intent i = new Intent(context, AnchorWidgetProvider.class);
         i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         context.sendBroadcast(i);
-    }
-
-    // Call when app has fresh urls so widget stays updated
-    public static void saveClipUrls(Context context, String jsonArray) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(KEY_URLS, jsonArray).apply();
     }
 }

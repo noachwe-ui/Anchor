@@ -68,14 +68,23 @@ public class MainActivity extends BridgeActivity {
 
     
     private void seedWidgetUrls() {
+        seedAssetToWidget("public/urls.json", true, false, false);
+        seedAssetToWidget("public/daily_dose.json", false, true, false);
+        seedAssetToWidget("public/hillel_eisenberg.json", false, false, true);
+    }
+
+    private void seedAssetToWidget(String path, boolean urls, boolean daily, boolean hillel) {
         try {
-            java.io.InputStream is = getAssets().open("public/urls.json");
+            java.io.InputStream is = getAssets().open(path);
             java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(is));
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null) sb.append(line);
             br.close();
-            AnchorWidgetProvider.saveClipUrls(this, sb.toString());
+            String json = sb.toString();
+            if (urls) AnchorWidgetProvider.saveClipUrls(this, json);
+            if (daily) AnchorWidgetProvider.saveDailyUrls(this, json);
+            if (hillel) AnchorWidgetProvider.saveHillelUrls(this, json);
         } catch (Exception ignored) {}
     }
 

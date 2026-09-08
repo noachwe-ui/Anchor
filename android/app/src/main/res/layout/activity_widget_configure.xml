@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#FAF8F5">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Anchor Widget"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#3D3A36" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="20dp"
+        android:text="Choose what the button opens"
+        android:textColor="#8A847C" />
+
+    <Button android:id="@+id/btn_vayimaen" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Vayimaen" android:layout_marginBottom="10dp" />
+    <Button android:id="@+id/btn_daily" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Daily Dose" android:layout_marginBottom="10dp" />
+    <Button android:id="@+id/btn_hillel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Rabbi Hillel Eisenberg" android:layout_marginBottom="10dp" />
+    <Button android:id="@+id/btn_open_app" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Open Anchor" />
+</LinearLayout>

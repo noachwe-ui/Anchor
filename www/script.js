@@ -105,8 +105,13 @@ if (saveModeBtn) saveModeBtn.addEventListener("click", () => {
   const selected = document.querySelector('input[name="bubble-mode"]:checked');
   if (!selected) return;
   localStorage.setItem(MODE_KEY, selected.value);
+  // Push to native immediately instead of waiting for it to next poll
+  // localStorage — that delay was making this menu look like it did nothing.
+  if (window.AnchorNative && window.AnchorNative.setBubbleMode) {
+    window.AnchorNative.setBubbleMode(selected.value);
+  }
   const status = document.getElementById("mode-status");
-  if (status) status.textContent = "Saved: " + selected.value + ". Reopen Anchor once to apply.";
+  if (status) status.textContent = "Saved: " + selected.value;
   alert("Bubble mode saved: " + selected.value);
 });
 
@@ -280,5 +285,4 @@ if (saveHomeBtn) {
 loadHomeUI();
 
 loadData();
-
 

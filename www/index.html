@@ -83,6 +83,22 @@
     </section>
 
     <section class="settings-card">
+      <h2>Widget Appearance</h2>
+      <p class="hint">Changes apply to all Anchor widgets on your home screen</p>
+      <div id="widget-color-swatches" style="display:flex;gap:10px;margin:10px 0;">
+        <button type="button" class="widget-swatch" data-color="#FF9F7A" style="width:32px;height:32px;border-radius:50%;background:#FF9F7A;border:2px solid #fff;"></button>
+        <button type="button" class="widget-swatch" data-color="#7AC7FF" style="width:32px;height:32px;border-radius:50%;background:#7AC7FF;border:2px solid #fff;"></button>
+        <button type="button" class="widget-swatch" data-color="#8AE68A" style="width:32px;height:32px;border-radius:50%;background:#8AE68A;border:2px solid #fff;"></button>
+        <button type="button" class="widget-swatch" data-color="#D9A6F2" style="width:32px;height:32px;border-radius:50%;background:#D9A6F2;border:2px solid #fff;"></button>
+        <button type="button" class="widget-swatch" data-color="#FFFFFF" style="width:32px;height:32px;border-radius:50%;background:#FFFFFF;border:2px solid #ccc;"></button>
+        <button type="button" class="widget-swatch" data-color="#3D3A36" style="width:32px;height:32px;border-radius:50%;background:#3D3A36;border:2px solid #fff;"></button>
+      </div>
+      <label class="hint" for="widget-opacity">Opacity</label>
+      <input id="widget-opacity" type="range" min="20" max="100" value="100" style="width:100%;" />
+      <p id="widget-appearance-status" class="hint"></p>
+    </section>
+
+    <section class="settings-card">
       <h2>Widgets</h2>
       <p class="hint">
         Add widgets from your home screen:<br>
@@ -96,4 +112,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-

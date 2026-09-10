@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Anchor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- MAIN SCREEN -->
+  <div id="screen-main" class="container">
+    <header class="header-row">
+      <div>
+        <h1>Anchor</h1>
+        <p class="subtitle">Take a deep breath and give yourself credit. You're doing great! ✨</p>
+      </div>
+      <button id="open-settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
+    </header>
+
+    <section id="quote-card" class="quote-card">
+      <p id="quote-text">Loading...</p>
+      <p id="quote-source"></p>
+    </section>
+
+    <section id="image-card" class="image-card" hidden>
+      <img id="home-image" alt="Anchor" />
+    </section>
+
+    <div class="actions">
+      <button id="clip-btn" class="btn primary">Vayimaen</button>
+      <button id="daily-dose-btn" class="btn secondary">Daily Dose</button>
+      <button id="hillel-btn" class="btn secondary">Rabbi Hillel Eisenberg</button>
+      <button id="chizuk-btn" class="btn secondary" style="display:none;">My Chizuk</button>
+    </div>
+
+    <section class="personal">
+      <h2>Your notes</h2>
+      <textarea id="personal-note" placeholder="What made you smile today?..."></textarea>
+      <button id="save-note-btn" class="btn secondary">Keep This Thought 💛</button>
+    </section>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div id="screen-settings" class="container settings-screen" hidden>
+    <header class="header-row">
+      <button id="back-main-btn" class="icon-btn" aria-label="Back">←</button>
+      <h1 class="settings-title">Settings</h1>
+      <div style="width:40px"></div>
+    </header>
+
+    <section class="settings-card">
+      <h2>Floating Bubble</h2>
+      <p class="hint">Choose how the support bubble behaves</p>
+      <div class="mode-list">
+        <label class="mode-option"><input type="radio" name="bubble-mode" value="off"><span>Off</span></label>
+        <label class="mode-option"><input type="radio" name="bubble-mode" value="always"><span>Always on</span></label>
+        <label class="mode-option"><input type="radio" name="bubble-mode" value="targets"><span>Browsers & social apps</span></label>
+        <label class="mode-option"><input type="radio" name="bubble-mode" value="accessibility"><span>Accessibility detection</span></label>
+      </div>
+      <button id="save-mode-btn" class="btn primary">Save Bubble Mode</button>
+      <p id="mode-status" class="hint"></p>
+    </section>
+
+    <section class="settings-card">
+      <h2>My Chizuk Links</h2>
+      <p class="hint">Personal links only you add on this device</p>
+      <input id="chizuk-link" type="url" placeholder="https://..." />
+      <button id="add-chizuk-btn" class="btn secondary">Add Link</button>
+      <div id="chizuk-list"></div>
+    </section>
+
+    
+    <section class="settings-card">
+      <h2>Home Screen</h2>
+      <p class="hint">Choose what appears at the top</p>
+      <div class="mode-list">
+        <label class="mode-option"><input type="radio" name="home-mode" value="quote"><span>Quote</span></label>
+        <label class="mode-option"><input type="radio" name="home-mode" value="image"><span>Image (top half)</span></label>
+      </div>
+      <input id="home-image-file" type="file" accept="image/*" />
+      <button id="save-home-btn" class="btn primary">Save Home Screen</button>
+      <p id="home-status" class="hint">Image is stored only on this phone</p>
+    </section>
+
+    <section class="settings-card">
+      <h2>Widgets</h2>
+      <p class="hint">
+        Add widgets from your home screen:<br>
+        • <b>Anchor</b> — quote card + Vayimaen<br>
+        • <b>Anchor Shortcut</b> — round button you configure
+      </p>
+      <p class="hint">Open Anchor once after installing so clip links are ready for widgets.</p>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+

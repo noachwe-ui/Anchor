@@ -3,56 +3,10 @@ let urls = [];
 let dailyDose = [];
 let hillelLinks = [];
 
-const REMOTE_QUOTES = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/quotes.json";
-const REMOTE_URLS   = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/urls.json";
-const REMOTE_DAILY  = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/daily_dose.json";
-const REMOTE_HILLEL = "https://raw.githubusercontent.com/noachwe-ui/Anchor/main/www/hillel_eisenberg.json";
 const MODE_KEY = "anchor-bubble-mode";
 
 async function loadData() {
-  // Try remote first
-  try {
-    const [qRes, uRes, dRes, hRes] = await Promise.all([
-      fetch(REMOTE_QUOTES, { cache: "no-store" }),
-      fetch(REMOTE_URLS, { cache: "no-store" }),
-      fetch(REMOTE_DAILY, { cache: "no-store" }),
-      fetch(REMOTE_HILLEL, { cache: "no-store" })
-    ]);
-    if (qRes.ok) {
-      quotes = await qRes.json();
-      localStorage.setItem("anchor-quotes-cache", JSON.stringify(quotes));
-    }
-    if (uRes.ok) {
-      urls = await uRes.json();
-      localStorage.setItem("anchor-urls-cache", JSON.stringify(urls));
-    }
-    if (dRes.ok) {
-      dailyDose = await dRes.json();
-      localStorage.setItem("anchor-daily-cache", JSON.stringify(dailyDose));
-    }
-    if (hRes.ok) {
-      hillelLinks = await hRes.json();
-      localStorage.setItem("anchor-hillel-cache", JSON.stringify(hillelLinks));
-    }
-    if (quotes.length) showRandomQuote();
-    if (quotes.length || urls.length || dailyDose.length || hillelLinks.length) return;
-  } catch (e) {}
-
-  // Local cache
-  try {
-    const cq = localStorage.getItem("anchor-quotes-cache");
-    const cu = localStorage.getItem("anchor-urls-cache");
-    const cd = localStorage.getItem("anchor-daily-cache");
-    const ch = localStorage.getItem("anchor-hillel-cache");
-    if (cq) quotes = JSON.parse(cq);
-    if (cu) urls = JSON.parse(cu);
-    if (cd) dailyDose = JSON.parse(cd);
-    if (ch) hillelLinks = JSON.parse(ch);
-    if (quotes.length) showRandomQuote();
-    if (quotes.length || urls.length || dailyDose.length || hillelLinks.length) return;
-  } catch (e) {}
-
-  // Bundled files
+  // Local-only: read the JSON files bundled inside the app. No network calls.
   try {
     const [qRes, uRes, dRes, hRes] = await Promise.all([
       fetch("quotes.json"),
@@ -66,19 +20,19 @@ async function loadData() {
     if (hRes.ok) hillelLinks = await hRes.json();
     showRandomQuote();
   } catch (err) {
-    document.getElementById("quote-text").textContent =
-      "Take a slow breath. You are here now.";
+    const qt = document.getElementById("quote-text");
+    if (qt) qt.textContent = "Take a slow breath. You are here now.";
   }
 }
 
 function showRandomQuote() {
   if (!quotes.length) return;
   const item = quotes[Math.floor(Math.random() * quotes.length)];
-  document.getElementById("quote-text").textContent = item.quote;
-  document.getElementById("quote-source").textContent =
-    item.source ? `— ${item.source}` : "";
+  const qt = document.getElementById("quote-text");
+  const qs = document.getElementById("quote-source");
+  if (qt) qt.textContent = item.quote;
+  if (qs) qs.textContent = item.source ? `— ${item.source}` : "";
 }
-
 
 const dailyBtn = document.getElementById("daily-dose-btn");
 if (dailyBtn) dailyBtn.addEventListener("click", () => {
@@ -98,7 +52,8 @@ if (hillelBtn) hillelBtn.addEventListener("click", () => {
   window.open(hillelLinks[Math.floor(Math.random() * hillelLinks.length)], "_blank");
 });
 
-document.getElementById("clip-btn").addEventListener("click", () => {
+const clipBtn = document.getElementById("clip-btn");
+if (clipBtn) clipBtn.addEventListener("click", () => {
   if (!urls.length) {
     alert("No clips added yet.");
     return;
@@ -109,9 +64,10 @@ document.getElementById("clip-btn").addEventListener("click", () => {
 
 // Notes
 const noteEl = document.getElementById("personal-note");
-noteEl.value = localStorage.getItem("anchor-note") || "";
-document.getElementById("save-note-btn").addEventListener("click", () => {
-  localStorage.setItem("anchor-note", noteEl.value);
+if (noteEl) noteEl.value = localStorage.getItem("anchor-note") || "";
+const saveNoteBtn = document.getElementById("save-note-btn");
+if (saveNoteBtn) saveNoteBtn.addEventListener("click", () => {
+  if (noteEl) localStorage.setItem("anchor-note", noteEl.value);
   alert("Note saved on this device.");
 });
 
@@ -119,14 +75,16 @@ document.getElementById("save-note-btn").addEventListener("click", () => {
 const mainScreen = document.getElementById("screen-main");
 const settingsScreen = document.getElementById("screen-settings");
 
-document.getElementById("open-settings-btn").addEventListener("click", () => {
-  mainScreen.hidden = true;
-  settingsScreen.hidden = false;
+const openSettingsBtn = document.getElementById("open-settings-btn");
+if (openSettingsBtn) openSettingsBtn.addEventListener("click", () => {
+  if (mainScreen) mainScreen.hidden = true;
+  if (settingsScreen) settingsScreen.hidden = false;
 });
 
-document.getElementById("back-main-btn").addEventListener("click", () => {
-  settingsScreen.hidden = true;
-  mainScreen.hidden = false;
+const backMainBtn = document.getElementById("back-main-btn");
+if (backMainBtn) backMainBtn.addEventListener("click", () => {
+  if (settingsScreen) settingsScreen.hidden = true;
+  if (mainScreen) mainScreen.hidden = false;
 });
 
 // Bubble mode
@@ -138,15 +96,17 @@ function loadModeUI() {
   const mode = getMode();
   const input = document.querySelector(`input[name="bubble-mode"][value="${mode}"]`);
   if (input) input.checked = true;
-  document.getElementById("mode-status").textContent = "Current mode: " + mode;
+  const status = document.getElementById("mode-status");
+  if (status) status.textContent = "Current mode: " + mode;
 }
 
-document.getElementById("save-mode-btn").addEventListener("click", () => {
+const saveModeBtn = document.getElementById("save-mode-btn");
+if (saveModeBtn) saveModeBtn.addEventListener("click", () => {
   const selected = document.querySelector('input[name="bubble-mode"]:checked');
   if (!selected) return;
   localStorage.setItem(MODE_KEY, selected.value);
-  document.getElementById("mode-status").textContent =
-    "Saved: " + selected.value + ". Reopen Anchor once to apply.";
+  const status = document.getElementById("mode-status");
+  if (status) status.textContent = "Saved: " + selected.value + ". Reopen Anchor once to apply.";
   alert("Bubble mode saved: " + selected.value);
 });
 
@@ -162,6 +122,7 @@ function saveChizukLinks(links) {
 
 function renderChizukList() {
   const list = document.getElementById("chizuk-list");
+  if (!list) return;
   const links = getChizukLinks();
   list.innerHTML = "";
   links.forEach((link, index) => {
@@ -192,11 +153,13 @@ function renderChizukList() {
 
 function updateChizukButton() {
   const btn = document.getElementById("chizuk-btn");
-  btn.style.display = getChizukLinks().length ? "block" : "none";
+  if (btn) btn.style.display = getChizukLinks().length ? "block" : "none";
 }
 
-document.getElementById("add-chizuk-btn").addEventListener("click", () => {
+const addChizukBtn = document.getElementById("add-chizuk-btn");
+if (addChizukBtn) addChizukBtn.addEventListener("click", () => {
   const input = document.getElementById("chizuk-link");
+  if (!input) return;
   const link = input.value.trim();
   if (!link) return;
   const links = getChizukLinks();
@@ -210,7 +173,8 @@ document.getElementById("add-chizuk-btn").addEventListener("click", () => {
   alert("Link added!");
 });
 
-document.getElementById("chizuk-btn").addEventListener("click", () => {
+const chizukBtn = document.getElementById("chizuk-btn");
+if (chizukBtn) chizukBtn.addEventListener("click", () => {
   const links = getChizukLinks();
   if (!links.length) return;
   window.open(links[Math.floor(Math.random() * links.length)], "_blank");
@@ -219,7 +183,6 @@ document.getElementById("chizuk-btn").addEventListener("click", () => {
 loadModeUI();
 renderChizukList();
 updateChizukButton();
-
 
 // Home screen mode: quote | image (local file)
 const HOME_MODE_KEY = "anchor-home-mode";
@@ -316,5 +279,6 @@ if (saveHomeBtn) {
 
 loadHomeUI();
 
-
 loadData();
+
+

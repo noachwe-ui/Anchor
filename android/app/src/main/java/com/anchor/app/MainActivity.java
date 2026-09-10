@@ -29,22 +29,35 @@ public class MainActivity extends BridgeActivity {
         seedWidgetUrls();
         handleClipIntent(getIntent());
 
-        // After web loads, sync mode from localStorage
-        getBridge().getWebView().postDelayed(this::syncModeFromWeb, 1200);
+        // After web loads, sync mode from localStorage. script.js may not
+        // have finished running yet on a slow/cold launch, in which case
+        // this silently no-ops — retry a few times with backoff instead
+        // of gambling on one fixed delay.
+        getBridge().getWebView().postDelayed(() -> syncModeFromWeb(0), 800);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        getBridge().getWebView().postDelayed(this::syncModeFromWeb, 500);
+        getBridge().getWebView().postDelayed(() -> syncModeFromWeb(0), 400);
     }
 
-    private void syncModeFromWeb() {
+    private static final int[] SYNC_RETRY_DELAYS_MS = { 400, 800, 1500 };
+
+    private void syncModeFromWeb(int attempt) {
         try {
             getBridge().getWebView().evaluateJavascript(
                 "localStorage.getItem('anchor-bubble-mode')",
                 value -> {
-                    if (value == null || value.equals("null")) return;
+                    boolean gotValue = value != null && !value.equals("null");
+                    if (!gotValue) {
+                        if (attempt < SYNC_RETRY_DELAYS_MS.length) {
+                            getBridge().getWebView().postDelayed(
+                                () -> syncModeFromWeb(attempt + 1),
+                                SYNC_RETRY_DELAYS_MS[attempt]);
+                        }
+                        return;
+                    }
                     String mode = value.replace("\"", "").trim();
                     if (mode.isEmpty()) return;
                     SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
@@ -68,9 +81,20 @@ public class MainActivity extends BridgeActivity {
 
     
     private void seedWidgetUrls() {
-        seedAssetToWidget("public/urls.json", true, false, false);
-        seedAssetToWidget("public/daily_dose.json", false, true, false);
-        seedAssetToWidget("public/hillel_eisenberg.json", false, false, true);
+        // Only seed each cache the first time it's empty. Previously this
+        // ran unconditionally on every launch, which would silently
+        // overwrite any future per-widget URL customization on next open.
+        SharedPreferences widgetPrefs = getSharedPreferences(
+            AnchorWidgetProvider.PREFS, MODE_PRIVATE);
+        if (widgetPrefs.getString(AnchorWidgetProvider.KEY_URLS, "").isEmpty()) {
+            seedAssetToWidget("public/urls.json", true, false, false);
+        }
+        if (widgetPrefs.getString(AnchorWidgetProvider.KEY_DAILY, "").isEmpty()) {
+            seedAssetToWidget("public/daily_dose.json", false, true, false);
+        }
+        if (widgetPrefs.getString(AnchorWidgetProvider.KEY_HILLEL, "").isEmpty()) {
+            seedAssetToWidget("public/hillel_eisenberg.json", false, false, true);
+        }
     }
 
     private void seedAssetToWidget(String path, boolean urls, boolean daily, boolean hillel) {

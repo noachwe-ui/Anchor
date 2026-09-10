@@ -16,21 +16,26 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class FloatingBubbleService extends Service {
     public static final String ACTION_SHOW = "com.anchor.app.SHOW_BUBBLE";
     public static final String ACTION_HIDE = "com.anchor.app.HIDE_BUBBLE";
     public static final String ACTION_APPLY_MODE = "com.anchor.app.APPLY_MODE";
+    private static final String TAG = "FloatingBubble";
+
+    // "targets" mode polls UsageStatsManager on this cadence when the
+    // Accessibility path isn't being used. Widened from 500ms/2500ms to
+    // cut battery/CPU churn from a tight polling loop.
+    private static final long POLL_INTERVAL_MS = 1500;
+    private static final long POLL_WINDOW_MS = 4000;
 
     private WindowManager wm;
     private View bubble;
@@ -45,21 +50,6 @@ public class FloatingBubbleService extends Service {
     private int screenHeight;
     private String mode = "always";
     private int missCount = 0;
-
-    private static final Set<String> TARGETS = new HashSet<>(Arrays.asList(
-        "com.android.chrome", "com.chrome.beta", "com.chrome.dev",
-        "com.sec.android.app.sbrowser", "org.mozilla.firefox",
-        "org.mozilla.firefox_beta", "com.opera.browser", "com.brave.browser",
-        "com.microsoft.emmx", "com.duckduckgo.mobile.android",
-        "com.google.android.youtube",
-        "com.whatsapp", "com.whatsapp.w4b",
-        "com.instagram.android", "com.facebook.katana", "com.facebook.lite",
-        "com.facebook.orca", "com.facebook.mlite",
-        "com.zhiliaoapp.musically", "com.ss.android.ugc.trill",
-        "com.twitter.android", "com.snapchat.android", "com.reddit.frontpage",
-        "org.telegram.messenger", "org.telegram.messenger.web",
-        "com.discord", "com.pinterest", "com.linkedin.android"
-    ));
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -126,12 +116,11 @@ public class FloatingBubbleService extends Service {
         @Override public void run() {
             if (!"targets".equals(mode)) return;
             if (isDragging) {
-                handler.postDelayed(this, 500);
+                handler.postDelayed(this, POLL_INTERVAL_MS);
                 return;
             }
             String fg = getForegroundApp();
-            boolean onTarget = fg != null && (TARGETS.contains(fg)
-                || fg.contains("chrome") || fg.contains("whatsapp"));
+            boolean onTarget = fg != null && Constants.TARGETS.contains(fg);
             if (onTarget) {
                 missCount = 0;
                 if (!userHidden) showBubble();
@@ -142,7 +131,7 @@ public class FloatingBubbleService extends Service {
                     hideBubble();
                 }
             }
-            handler.postDelayed(this, 500);
+            handler.postDelayed(this, POLL_INTERVAL_MS);
         }
     };
 
@@ -151,24 +140,24 @@ public class FloatingBubbleService extends Service {
             UsageStatsManager usm = (UsageStatsManager) getSystemService(USAGE_STATS_SERVICE);
             long end = System.currentTimeMillis();
             List<android.app.usage.UsageStats> stats =
-                usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - 2500, end);
+                usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - POLL_WINDOW_MS, end);
             String bestTarget = null; long bestTargetTime = 0;
             String bestAny = null; long bestAnyTime = 0;
             if (stats != null) {
                 for (android.app.usage.UsageStats s : stats) {
                     String pkg = s.getPackageName();
                     long t = s.getLastTimeUsed();
-                    if (t < end - 2500) continue;
+                    if (t < end - POLL_WINDOW_MS) continue;
                     if (pkg.contains("systemui") || pkg.contains("inputmethod")
                         || pkg.contains("keyboard") || pkg.contains("launcher")) continue;
                     if (t > bestAnyTime) { bestAnyTime = t; bestAny = pkg; }
-                    if (TARGETS.contains(pkg) && t > bestTargetTime) {
+                    if (Constants.TARGETS.contains(pkg) && t > bestTargetTime) {
                         bestTargetTime = t; bestTarget = pkg;
                     }
                 }
             }
             if (bestTarget != null) return bestTarget;
-            UsageEvents events = usm.queryEvents(end - 2500, end);
+            UsageEvents events = usm.queryEvents(end - POLL_WINDOW_MS, end);
             UsageEvents.Event ev = new UsageEvents.Event();
             String last = null;
             while (events.hasNextEvent()) {
@@ -179,9 +168,10 @@ public class FloatingBubbleService extends Service {
                         last = pkg;
                 }
             }
-            if (last != null && TARGETS.contains(last)) return last;
+            if (last != null && Constants.TARGETS.contains(last)) return last;
             return bestAny != null ? bestAny : last;
         } catch (Exception e) {
+            Log.w(TAG, "getForegroundApp failed", e);
             return null;
         }
     }
@@ -248,7 +238,9 @@ public class FloatingBubbleService extends Service {
                     }
                     bubbleParams.x = ix + dx;
                     bubbleParams.y = iy + dy;
-                    try { wm.updateViewLayout(bubble, bubbleParams); } catch (Exception ignored) {}
+                    try { wm.updateViewLayout(bubble, bubbleParams); } catch (Exception ex) {
+                        Log.w(TAG, "updateViewLayout during drag failed", ex);
+                    }
                     highlightRemoveZone(e.getRawY());
                     return true;
                 }
@@ -304,12 +296,21 @@ public class FloatingBubbleService extends Service {
 
     private void showRemoveZone() {
         if (removeVisible) return;
-        try { wm.addView(removeZone, removeParams); removeVisible = true; } catch (Exception ignored) {}
+        try {
+            wm.addView(removeZone, removeParams);
+            removeVisible = true;
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to show remove zone", e);
+        }
     }
 
     private void hideRemoveZone() {
         if (!removeVisible) return;
-        try { wm.removeView(removeZone); } catch (Exception ignored) {}
+        try {
+            wm.removeView(removeZone);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to hide remove zone", e);
+        }
         removeVisible = false;
     }
 
@@ -338,21 +339,37 @@ public class FloatingBubbleService extends Service {
                 visible = true;
             } else {
                 bubble.setVisibility(View.VISIBLE);
-                try { wm.updateViewLayout(bubble, bubbleParams); } catch (Exception ignored) {}
+                try {
+                    wm.updateViewLayout(bubble, bubbleParams);
+                } catch (Exception ex) {
+                    Log.w(TAG, "updateViewLayout in showBubble failed", ex);
+                }
             }
         } catch (Exception e) {
+            Log.w(TAG, "addView in showBubble failed, retrying once", e);
             visible = false;
-            try { wm.addView(bubble, bubbleParams); visible = true; } catch (Exception ignored) {}
+            try {
+                wm.addView(bubble, bubbleParams);
+                visible = true;
+            } catch (Exception e2) {
+                Log.e(TAG, "Retry of addView in showBubble also failed", e2);
+            }
         }
     }
 
     private void hideBubble() {
         hideRemoveZone();
         if (bubble == null) return;
-        try { bubble.setVisibility(View.GONE); } catch (Exception ignored) {}
+        try {
+            bubble.setVisibility(View.GONE);
+        } catch (Exception e) {
+            Log.w(TAG, "setVisibility(GONE) on bubble failed", e);
+        }
         try {
             if (visible) { wm.removeView(bubble); visible = false; }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.w(TAG, "removeView on bubble failed", e);
+        }
     }
 
     @Override
@@ -361,7 +378,11 @@ public class FloatingBubbleService extends Service {
         if (handler != null) handler.removeCallbacksAndMessages(null);
         hideRemoveZone();
         if (visible && bubble != null) {
-            try { wm.removeView(bubble); } catch (Exception ignored) {}
+            try {
+                wm.removeView(bubble);
+            } catch (Exception e) {
+                Log.w(TAG, "removeView in onDestroy failed", e);
+            }
         }
     }
 }

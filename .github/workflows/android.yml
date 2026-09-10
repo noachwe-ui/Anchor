@@ -3,6 +3,8 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -15,6 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -23,10 +26,13 @@ jobs:
           java-version: '17'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Run tests
+        run: node www/test.js
 
       - name: Build APK
         run: |
@@ -37,5 +43,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Anchor-APK
+          name: Anchor-APK-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk

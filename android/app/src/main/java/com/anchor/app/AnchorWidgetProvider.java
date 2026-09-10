@@ -21,11 +21,21 @@ import java.util.Random;
 
 public class AnchorWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_CLICK = "com.anchor.app.WIDGET_CLICK";
+    public static final String ACTION_CYCLE = "com.anchor.app.WIDGET_CYCLE";
     public static final String PREFS = "anchor_widget_prefs";
     public static final String KEY_BG = "bg_color";
     public static final String KEY_URLS = "clip_urls";
     public static final String KEY_DAILY = "daily_urls";
     public static final String KEY_HILLEL = "hillel_urls";
+
+    // Same key prefix AnchorWidgetConfigureActivity already defines —
+    // referencing it here instead of a second copy of the literal string.
+    private static final String KEY_ACTION_PREFIX = AnchorWidgetConfigureActivity.KEY_ACTION_PREFIX;
+
+    // Order the cycle button steps through. Same four actions the
+    // configure screen already offered — cycling just means you no
+    // longer have to delete and re-add the widget to change this.
+    private static final String[] CYCLE_ORDER = { "vayimaen", "daily", "hillel", "open_app" };
 
     private static final String[] MESSAGES = {
         "Take a breath. You're doing great.",
@@ -43,20 +53,28 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        if (!ACTION_CLICK.equals(intent.getAction())) {
-            if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(intent.getAction())) {
-                AppWidgetManager manager = AppWidgetManager.getInstance(context);
-                int[] ids = manager.getAppWidgetIds(new ComponentName(context, AnchorWidgetProvider.class));
-                onUpdate(context, manager, ids);
-            }
+        String act = intent.getAction();
+
+        if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(act)) {
+            AppWidgetManager manager = AppWidgetManager.getInstance(context);
+            int[] ids = manager.getAppWidgetIds(new ComponentName(context, AnchorWidgetProvider.class));
+            onUpdate(context, manager, ids);
             return;
         }
 
         int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID);
+        if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return;
+
+        if (ACTION_CYCLE.equals(act)) {
+            cycleAction(context, id);
+            return;
+        }
+
+        if (!ACTION_CLICK.equals(act)) return;
+
         String action = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString("widget_action_" + id,
-                "vayimaen");
+            .getString(KEY_ACTION_PREFIX + id, "vayimaen");
 
         if ("open_app".equals(action)) {
             Intent i = new Intent(context, MainActivity.class);
@@ -92,6 +110,18 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    private void cycleAction(Context context, int id) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String current = prefs.getString(KEY_ACTION_PREFIX + id, "vayimaen");
+        int idx = 0;
+        for (int i = 0; i < CYCLE_ORDER.length; i++) {
+            if (CYCLE_ORDER[i].equals(current)) { idx = i; break; }
+        }
+        String next = CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
+        prefs.edit().putString(KEY_ACTION_PREFIX + id, next).apply();
+        updateWidget(context, AppWidgetManager.getInstance(context), id);
+    }
+
     private List<String> loadList(Context context, String prefKey, String assetPath) {
         List<String> urls = new ArrayList<>();
         try {
@@ -122,41 +152,47 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         return urls;
     }
 
+    private static String labelFor(String action) {
+        switch (action) {
+            case "daily": return "Daily Dose";
+            case "hillel": return "Rabbi Hillel Eisenberg";
+            case "open_app": return "Open Anchor";
+            default: return "Vayimaen";
+        }
+    }
+
     static void updateWidget(Context context, AppWidgetManager manager, int id) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_anchor);
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+
+        // Tint the pill background via colorFilter, not setBackgroundColor —
+        // this preserves the rounded corners from widget_pill_shape.xml
+        // instead of flattening them into a plain rectangle.
         try {
-            views.setInt(R.id.widget_root, "setBackgroundColor",
-                Color.parseColor(prefs.getString(KEY_BG, "#FAF8F5")));
+            views.setInt(R.id.widget_pill_bg, "setColorFilter",
+                Color.parseColor(prefs.getString(KEY_BG, "#FFFFFF")));
         } catch (Exception ignored) {}
 
-        views.setTextViewText(R.id.widget_message,
-            MESSAGES[new Random().nextInt(MESSAGES.length)]);
+        String action = prefs.getString(KEY_ACTION_PREFIX + id, "vayimaen");
+        views.setTextViewText(R.id.widget_label, labelFor(action));
 
-        String action = prefs.getString(
-            "widget_action_" + id,
-            "vayimaen");
-        String label =
-            "daily".equals(action) ? "Daily Dose" :
-            "hillel".equals(action) ? "Rabbi Hillel Eisenberg" :
-            "open_app".equals(action) ? "Open Anchor" :
-            "Vayimaen";
-        views.setTextViewText(R.id.widget_clip_btn, label);
-
+        // Main row: performs the current action.
         Intent click = new Intent(context, AnchorWidgetProvider.class);
         click.setAction(ACTION_CLICK);
         click.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
-        PendingIntent pi = PendingIntent.getBroadcast(context, id, click,
+        PendingIntent piClick = PendingIntent.getBroadcast(context, id, click,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_clip_btn, pi);
+        views.setOnClickPendingIntent(R.id.widget_row, piClick);
 
-        // Title/message still open app
-        Intent openApp = new Intent(context, MainActivity.class);
-        openApp.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent piApp = PendingIntent.getActivity(context, id + 1000, openApp,
+        // Cycle button: separate tap target, switches the action in place.
+        Intent cycle = new Intent(context, AnchorWidgetProvider.class);
+        cycle.setAction(ACTION_CYCLE);
+        cycle.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        // Distinct requestCode (id + 2000) so this PendingIntent doesn't
+        // collide with piClick's (id) or MainActivity's (id + 1000).
+        PendingIntent piCycle = PendingIntent.getBroadcast(context, id + 2000, cycle,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_title, piApp);
-        views.setOnClickPendingIntent(R.id.widget_message, piApp);
+        views.setOnClickPendingIntent(R.id.widget_cycle_btn, piCycle);
 
         manager.updateAppWidget(id, views);
     }

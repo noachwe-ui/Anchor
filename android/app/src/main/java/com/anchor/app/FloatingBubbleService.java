@@ -36,6 +36,12 @@ public class FloatingBubbleService extends Service {
     // always clear a prior manual "drag to remove" dismissal.
     public static final String ACTION_APP_FOREGROUND = "com.anchor.app.APP_FOREGROUND";
     public static final String ACTION_APP_BACKGROUND = "com.anchor.app.APP_BACKGROUND";
+    public static final String ACTION_APPLY_BUBBLE_APPEARANCE = "com.anchor.app.APPLY_BUBBLE_APPEARANCE";
+    // Prefs keys — read/written here and from MainActivity's JS bridge,
+    // stored in the same file MainActivity already uses for KEY_MODE.
+    public static final String KEY_BUBBLE_COLOR = "bubble_color";
+    public static final String KEY_BUBBLE_ALPHA = "bubble_alpha";
+    public static final String KEY_BUBBLE_CORNER = "bubble_corner"; // top_left/top_right/bottom_left/bottom_right
     private static final String TAG = "FloatingBubble";
 
     // "targets" mode polls UsageStatsManager on this cadence when the
@@ -56,6 +62,7 @@ public class FloatingBubbleService extends Service {
     private boolean appInForeground = false;
     private boolean isDragging = false;
     private int screenHeight;
+    private int screenWidth;
     private String mode = "always";
     private int missCount = 0;
 
@@ -69,7 +76,9 @@ public class FloatingBubbleService extends Service {
         DisplayMetrics dm = new DisplayMetrics();
         wm.getDefaultDisplay().getMetrics(dm);
         screenHeight = dm.heightPixels;
+        screenWidth = dm.widthPixels;
         makeBubble();
+        applyBubbleAppearance();
         makeRemoveZone();
         handler = new Handler(Looper.getMainLooper());
         mode = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE)
@@ -122,6 +131,8 @@ public class FloatingBubbleService extends Service {
             } else if (ACTION_APP_BACKGROUND.equals(action)) {
                 appInForeground = false;
                 applyMode();
+            } else if (ACTION_APPLY_BUBBLE_APPEARANCE.equals(action)) {
+                applyBubbleAppearance();
             }
         }
         return START_STICKY;
@@ -227,6 +238,61 @@ public class FloatingBubbleService extends Service {
             .setContentText("Bubble is active")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true).build());
+    }
+
+    // A plain custom View has no RemoteViews constraints, so unlike the
+    // widget, a single View.setAlpha() genuinely blends the whole bubble
+    // (background + icon) against whatever's behind it — no separate
+    // colorFilter/imageAlpha split needed here.
+    private void applyBubbleAppearance() {
+        if (bubble == null) return;
+        SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
+        String colorHex = prefs.getString(KEY_BUBBLE_COLOR, "#FF9F7A");
+        int alpha = prefs.getInt(KEY_BUBBLE_ALPHA, 255);
+        try {
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(Color.parseColor(colorHex));
+            bg.setCornerRadius(80);
+            bubble.setBackground(bg);
+        } catch (Exception ignored) {}
+        bubble.setAlpha(alpha / 255f);
+    }
+
+    // Called only when re-attaching from a fully hidden state (not during
+    // an active drag or while already showing) — that's what makes the
+    // bubble reappear in the same configured corner every time, while
+    // still letting a live drag move it freely in the meantime.
+    private void resetBubblePosition() {
+        if (bubbleParams == null || bubble == null) return;
+        SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
+        String corner = prefs.getString(KEY_BUBBLE_CORNER, "top_left");
+        // Measure for real instead of guessing a pixel width — padding/text
+        // size can change the bubble's actual rendered size.
+        bubble.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int bw = bubble.getMeasuredWidth();
+        int bh = bubble.getMeasuredHeight();
+        int margin = 40;
+        int topY = 200;
+        int bottomY = Math.max(topY, screenHeight - bh - margin - 150); // leave room for nav bar
+        switch (corner) {
+            case "top_right":
+                bubbleParams.x = Math.max(margin, screenWidth - bw - margin);
+                bubbleParams.y = topY;
+                break;
+            case "bottom_left":
+                bubbleParams.x = margin;
+                bubbleParams.y = bottomY;
+                break;
+            case "bottom_right":
+                bubbleParams.x = Math.max(margin, screenWidth - bw - margin);
+                bubbleParams.y = bottomY;
+                break;
+            case "top_left":
+            default:
+                bubbleParams.x = margin;
+                bubbleParams.y = topY;
+                break;
+        }
     }
 
     private int overlayType() {
@@ -386,6 +452,7 @@ public class FloatingBubbleService extends Service {
         try {
             bubble.setVisibility(View.VISIBLE);
             if (!bubble.isAttachedToWindow()) {
+                resetBubblePosition();
                 wm.addView(bubble, bubbleParams);
                 debugLog("showBubble: addView OK");
             } else {

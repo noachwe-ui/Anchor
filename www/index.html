@@ -83,6 +83,21 @@
     </section>
 
     <section class="settings-card">
+      <h2>Bubble Appearance</h2>
+      <input id="bubble-color-picker" type="color" value="#FF9F7A" style="width:100%;height:44px;border:none;padding:0;margin:10px 0;" />
+      <label class="hint" for="bubble-opacity">Opacity (0 = fully see-through)</label>
+      <input id="bubble-opacity" type="range" min="0" max="100" value="100" style="width:100%;" />
+      <p class="hint" style="margin-top:12px;">Reappears in this corner every time</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button type="button" class="bubble-corner-btn btn secondary" data-corner="top_left">Top Left</button>
+        <button type="button" class="bubble-corner-btn btn secondary" data-corner="top_right">Top Right</button>
+        <button type="button" class="bubble-corner-btn btn secondary" data-corner="bottom_left">Bottom Left</button>
+        <button type="button" class="bubble-corner-btn btn secondary" data-corner="bottom_right">Bottom Right</button>
+      </div>
+      <p id="bubble-appearance-status" class="hint"></p>
+    </section>
+
+    <section class="settings-card">
       <h2>Widget Appearance</h2>
       <p class="hint">Changes apply to all Anchor widgets on your home screen</p>
       <input id="widget-color-picker" type="color" value="#FF9F7A" style="width:100%;height:44px;border:none;padding:0;margin:10px 0;" />

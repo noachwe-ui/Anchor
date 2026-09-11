@@ -185,6 +185,49 @@ if (chizukBtn) chizukBtn.addEventListener("click", () => {
   window.open(links[Math.floor(Math.random() * links.length)], "_blank");
 });
 
+// Bubble appearance (color + opacity + reappear corner).
+const bubbleColorPicker = document.getElementById("bubble-color-picker");
+if (bubbleColorPicker) {
+  const savedColor = localStorage.getItem("anchor-bubble-color");
+  if (savedColor) bubbleColorPicker.value = savedColor;
+  bubbleColorPicker.addEventListener("change", () => {
+    const color = bubbleColorPicker.value;
+    localStorage.setItem("anchor-bubble-color", color);
+    if (window.AnchorNative && window.AnchorNative.setBubbleColor) {
+      window.AnchorNative.setBubbleColor(color);
+    }
+    const status = document.getElementById("bubble-appearance-status");
+    if (status) status.textContent = "Bubble color updated";
+  });
+}
+
+const bubbleOpacityInput = document.getElementById("bubble-opacity");
+if (bubbleOpacityInput) {
+  const savedBubbleOpacity = localStorage.getItem("anchor-bubble-opacity");
+  if (savedBubbleOpacity) bubbleOpacityInput.value = savedBubbleOpacity;
+  bubbleOpacityInput.addEventListener("change", () => {
+    const pct = parseInt(bubbleOpacityInput.value, 10);
+    localStorage.setItem("anchor-bubble-opacity", String(pct));
+    if (window.AnchorNative && window.AnchorNative.setBubbleAlpha) {
+      window.AnchorNative.setBubbleAlpha(Math.round(pct * 255 / 100));
+    }
+    const status = document.getElementById("bubble-appearance-status");
+    if (status) status.textContent = "Opacity: " + pct + "%";
+  });
+}
+
+document.querySelectorAll(".bubble-corner-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const corner = btn.getAttribute("data-corner");
+    localStorage.setItem("anchor-bubble-corner", corner);
+    if (window.AnchorNative && window.AnchorNative.setBubbleCorner) {
+      window.AnchorNative.setBubbleCorner(corner);
+    }
+    const status = document.getElementById("bubble-appearance-status");
+    if (status) status.textContent = "Will reappear: " + corner.replace("_", " ");
+  });
+});
+
 loadModeUI();
 renderChizukList();
 updateChizukButton();

@@ -66,6 +66,32 @@ public class MainActivity extends BridgeActivity {
                 runOnUiThread(() -> AnchorWidgetProvider.setTextColor(MainActivity.this, hex));
             }
             @JavascriptInterface
+            public void setBubbleColor(String hex) {
+                runOnUiThread(() -> {
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putString(FloatingBubbleService.KEY_BUBBLE_COLOR, hex).apply();
+                    notifyBubbleAppearanceChanged();
+                });
+            }
+            @JavascriptInterface
+            public void setBubbleAlpha(int alpha) {
+                runOnUiThread(() -> {
+                    int clamped = Math.max(0, Math.min(255, alpha));
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putInt(FloatingBubbleService.KEY_BUBBLE_ALPHA, clamped).apply();
+                    notifyBubbleAppearanceChanged();
+                });
+            }
+            @JavascriptInterface
+            public void setBubbleCorner(String corner) {
+                runOnUiThread(() -> {
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putString(FloatingBubbleService.KEY_BUBBLE_CORNER, corner).apply();
+                    // Position only resets on the next full show, by design —
+                    // no need to notify the service immediately here.
+                });
+            }
+            @JavascriptInterface
             public String getDebugLog() {
                 try {
                     java.io.File f = new java.io.File(getFilesDir(), "anchor_debug.log");
@@ -147,6 +173,12 @@ public class MainActivity extends BridgeActivity {
                 }
             );
         } catch (Exception ignored) {}
+    }
+
+    private void notifyBubbleAppearanceChanged() {
+        Intent i = new Intent(this, FloatingBubbleService.class);
+        i.setAction(FloatingBubbleService.ACTION_APPLY_BUBBLE_APPEARANCE);
+        startService(i);
     }
 
     private void applyBubbleMode(String mode) {

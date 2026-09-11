@@ -384,11 +384,11 @@ public class FloatingBubbleService extends Service {
         }
         debugLog("showBubble: attempting, isAttached=" + bubble.isAttachedToWindow());
         try {
+            bubble.setVisibility(View.VISIBLE);
             if (!bubble.isAttachedToWindow()) {
                 wm.addView(bubble, bubbleParams);
                 debugLog("showBubble: addView OK");
             } else {
-                bubble.setVisibility(View.VISIBLE);
                 wm.updateViewLayout(bubble, bubbleParams);
                 debugLog("showBubble: already attached, updateViewLayout OK");
             }

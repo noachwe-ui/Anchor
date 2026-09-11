@@ -24,6 +24,7 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_CYCLE = "com.anchor.app.WIDGET_CYCLE";
     public static final String PREFS = "anchor_widget_prefs";
     public static final String KEY_BG = "bg_color";
+    public static final String KEY_BG_ALPHA = "bg_alpha"; // 0-255, default fully opaque
     public static final String KEY_URLS = "clip_urls";
     public static final String KEY_DAILY = "daily_urls";
     public static final String KEY_HILLEL = "hillel_urls";
@@ -167,10 +168,15 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
 
         // Tint the pill background via colorFilter, not setBackgroundColor —
         // this preserves the rounded corners from widget_pill_shape.xml
-        // instead of flattening them into a plain rectangle.
+        // instead of flattening them into a plain rectangle. ImageView's
+        // setColorFilter(int) uses PorterDuff.Mode.SRC_ATOP, which respects
+        // the color's own alpha channel — that's what makes opacity work,
+        // not just color.
         try {
-            views.setInt(R.id.widget_pill_bg, "setColorFilter",
-                Color.parseColor(prefs.getString(KEY_BG, "#FFFFFF")));
+            int baseColor = Color.parseColor(prefs.getString(KEY_BG, "#FFFFFF"));
+            int alpha = prefs.getInt(KEY_BG_ALPHA, 255);
+            int tinted = (alpha << 24) | (baseColor & 0x00FFFFFF);
+            views.setInt(R.id.widget_pill_bg, "setColorFilter", tinted);
         } catch (Exception ignored) {}
 
         String action = prefs.getString(KEY_ACTION_PREFIX + id, "vayimaen");
@@ -215,6 +221,15 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
     public static void setBackgroundColor(Context context, String hexColor) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_BG, hexColor).apply();
+        Intent i = new Intent(context, AnchorWidgetProvider.class);
+        i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        context.sendBroadcast(i);
+    }
+
+    public static void setBackgroundAlpha(Context context, int alpha) {
+        int clamped = Math.max(0, Math.min(255, alpha));
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_BG_ALPHA, clamped).apply();
         Intent i = new Intent(context, AnchorWidgetProvider.class);
         i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         context.sendBroadcast(i);

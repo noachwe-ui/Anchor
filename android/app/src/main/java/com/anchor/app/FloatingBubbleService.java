@@ -23,12 +23,19 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import java.util.List;
 
 public class FloatingBubbleService extends Service {
     public static final String ACTION_SHOW = "com.anchor.app.SHOW_BUBBLE";
     public static final String ACTION_HIDE = "com.anchor.app.HIDE_BUBBLE";
     public static final String ACTION_APPLY_MODE = "com.anchor.app.APPLY_MODE";
+    // Sent by MainActivity itself on resume/pause. These are honored
+    // regardless of the current bubble mode — the bubble should never
+    // float over Anchor's own screens, and reopening the app should
+    // always clear a prior manual "drag to remove" dismissal.
+    public static final String ACTION_APP_FOREGROUND = "com.anchor.app.APP_FOREGROUND";
+    public static final String ACTION_APP_BACKGROUND = "com.anchor.app.APP_BACKGROUND";
     private static final String TAG = "FloatingBubble";
 
     // "targets" mode polls UsageStatsManager on this cadence when the
@@ -46,6 +53,7 @@ public class FloatingBubbleService extends Service {
     private boolean visible = false;
     private boolean removeVisible = false;
     private boolean userHidden = false;
+    private boolean appInForeground = false;
     private boolean isDragging = false;
     private int screenHeight;
     private String mode = "always";
@@ -87,6 +95,18 @@ public class FloatingBubbleService extends Service {
                     userHidden = false;
                     hideBubble();
                 }
+            } else if (ACTION_APP_FOREGROUND.equals(action)) {
+                // Anchor's own app just came to the front: never float the
+                // bubble over our own screens, and treat this as a fresh
+                // start — clear any earlier manual "drag to remove".
+                appInForeground = true;
+                userHidden = false;
+                hideBubble();
+                // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
+                Toast.makeText(this, "DEBUG: FBS received APP_FOREGROUND, hid bubble", Toast.LENGTH_SHORT).show();
+            } else if (ACTION_APP_BACKGROUND.equals(action)) {
+                appInForeground = false;
+                applyMode();
             }
         }
         return START_STICKY;
@@ -333,6 +353,11 @@ public class FloatingBubbleService extends Service {
     private void showBubble() {
         if (bubble == null || bubbleParams == null) return;
         if ("off".equals(mode)) return;
+        if (appInForeground) {
+            // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
+            Toast.makeText(this, "DEBUG: show blocked (appInForeground)", Toast.LENGTH_SHORT).show();
+            return;
+        }
         try {
             if (!visible) {
                 wm.addView(bubble, bubbleParams);

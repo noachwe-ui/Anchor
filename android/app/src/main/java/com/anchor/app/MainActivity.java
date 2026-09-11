@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -29,6 +30,25 @@ public class MainActivity extends BridgeActivity {
         seedWidgetUrls();
         handleClipIntent(getIntent());
 
+        // Lets script.js push a bubble-mode change to native the instant
+        // Save is tapped, instead of waiting for the next timed poll below
+        // (which only runs right after launch/resume) — this is what was
+        // making the in-app bubble settings menu appear to do nothing.
+        getBridge().getWebView().addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void setBubbleMode(String mode) {
+                runOnUiThread(() -> applyBubbleMode(mode));
+            }
+            @JavascriptInterface
+            public void setWidgetColor(String hex) {
+                runOnUiThread(() -> AnchorWidgetProvider.setBackgroundColor(MainActivity.this, hex));
+            }
+            @JavascriptInterface
+            public void setWidgetAlpha(int alpha) {
+                runOnUiThread(() -> AnchorWidgetProvider.setBackgroundAlpha(MainActivity.this, alpha));
+            }
+        }, "AnchorNative");
+
         // After web loads, sync mode from localStorage. script.js may not
         // have finished running yet on a slow/cold launch, in which case
         // this silently no-ops — retry a few times with backoff instead
@@ -40,6 +60,20 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         getBridge().getWebView().postDelayed(() -> syncModeFromWeb(0), 400);
+
+        Intent fg = new Intent(this, FloatingBubbleService.class);
+        fg.setAction(FloatingBubbleService.ACTION_APP_FOREGROUND);
+        startService(fg);
+        // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
+        android.widget.Toast.makeText(this, "DEBUG: sent APP_FOREGROUND", android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Intent bg = new Intent(this, FloatingBubbleService.class);
+        bg.setAction(FloatingBubbleService.ACTION_APP_BACKGROUND);
+        startService(bg);
     }
 
     private static final int[] SYNC_RETRY_DELAYS_MS = { 400, 800, 1500 };
@@ -58,18 +92,21 @@ public class MainActivity extends BridgeActivity {
                         }
                         return;
                     }
-                    String mode = value.replace("\"", "").trim();
-                    if (mode.isEmpty()) return;
-                    SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-                    prefs.edit().putString(KEY_MODE, mode).apply();
-
-                    Intent i = new Intent(this, FloatingBubbleService.class);
-                    i.setAction(FloatingBubbleService.ACTION_APPLY_MODE);
-                    i.putExtra("mode", mode);
-                    startService(i);
+                    applyBubbleMode(value.replace("\"", "").trim());
                 }
             );
         } catch (Exception ignored) {}
+    }
+
+    private void applyBubbleMode(String mode) {
+        if (mode == null || mode.isEmpty()) return;
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        prefs.edit().putString(KEY_MODE, mode).apply();
+
+        Intent i = new Intent(this, FloatingBubbleService.class);
+        i.setAction(FloatingBubbleService.ACTION_APPLY_MODE);
+        i.putExtra("mode", mode);
+        startService(i);
     }
 
     @Override

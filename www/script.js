@@ -189,6 +189,37 @@ loadModeUI();
 renderChizukList();
 updateChizukButton();
 
+// Widget appearance (color + opacity) — applies to all Anchor widgets.
+document.querySelectorAll(".widget-swatch").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const color = btn.getAttribute("data-color");
+    localStorage.setItem("anchor-widget-color", color);
+    if (window.AnchorNative && window.AnchorNative.setWidgetColor) {
+      window.AnchorNative.setWidgetColor(color);
+    }
+    const status = document.getElementById("widget-appearance-status");
+    if (status) status.textContent = "Widget color updated";
+  });
+});
+
+const widgetOpacityInput = document.getElementById("widget-opacity");
+if (widgetOpacityInput) {
+  const savedOpacity = localStorage.getItem("anchor-widget-opacity");
+  if (savedOpacity) widgetOpacityInput.value = savedOpacity;
+  // "change" (fires on release), not "input" (fires continuously while
+  // dragging) — avoids flooding the native bridge and widget redraws.
+  widgetOpacityInput.addEventListener("change", () => {
+    const pct = parseInt(widgetOpacityInput.value, 10);
+    localStorage.setItem("anchor-widget-opacity", String(pct));
+    if (window.AnchorNative && window.AnchorNative.setWidgetAlpha) {
+      // Convert 0-100% to a 0-255 alpha byte for the native side.
+      window.AnchorNative.setWidgetAlpha(Math.round(pct * 255 / 100));
+    }
+    const status = document.getElementById("widget-appearance-status");
+    if (status) status.textContent = "Opacity: " + pct + "%";
+  });
+}
+
 // Home screen mode: quote | image (local file)
 const HOME_MODE_KEY = "anchor-home-mode";
 const HOME_IMAGE_KEY = "anchor-home-image"; // data URL stored locally

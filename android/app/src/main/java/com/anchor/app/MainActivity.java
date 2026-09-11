@@ -47,6 +47,10 @@ public class MainActivity extends BridgeActivity {
             public void setWidgetAlpha(int alpha) {
                 runOnUiThread(() -> AnchorWidgetProvider.setBackgroundAlpha(MainActivity.this, alpha));
             }
+            @JavascriptInterface
+            public void setWidgetTextColor(String hex) {
+                runOnUiThread(() -> AnchorWidgetProvider.setTextColor(MainActivity.this, hex));
+            }
         }, "AnchorNative");
 
         // After web loads, sync mode from localStorage. script.js may not

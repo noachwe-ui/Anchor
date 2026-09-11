@@ -206,6 +206,21 @@ if (widgetColorPicker) {
   });
 }
 
+const widgetTextColorPicker = document.getElementById("widget-text-color-picker");
+if (widgetTextColorPicker) {
+  const savedTextColor = localStorage.getItem("anchor-widget-text-color");
+  if (savedTextColor) widgetTextColorPicker.value = savedTextColor;
+  widgetTextColorPicker.addEventListener("change", () => {
+    const color = widgetTextColorPicker.value;
+    localStorage.setItem("anchor-widget-text-color", color);
+    if (window.AnchorNative && window.AnchorNative.setWidgetTextColor) {
+      window.AnchorNative.setWidgetTextColor(color);
+    }
+    const status = document.getElementById("widget-appearance-status");
+    if (status) status.textContent = "Text color updated";
+  });
+}
+
 const widgetOpacityInput = document.getElementById("widget-opacity");
 if (widgetOpacityInput) {
   const savedOpacity = localStorage.getItem("anchor-widget-opacity");

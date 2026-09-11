@@ -331,7 +331,7 @@ public class FloatingBubbleService extends Service {
     private void hideRemoveZone() {
         if (!removeVisible) return;
         try {
-            wm.removeView(removeZone);
+            wm.removeViewImmediate(removeZone);
         } catch (Exception e) {
             Log.w(TAG, "Failed to hide remove zone", e);
         }
@@ -376,7 +376,7 @@ public class FloatingBubbleService extends Service {
             // clean detach before retrying, rather than trusting whatever
             // state we thought we were in.
             try {
-                if (bubble.isAttachedToWindow()) wm.removeView(bubble);
+                if (bubble.isAttachedToWindow()) wm.removeViewImmediate(bubble);
             } catch (Exception ignored2) {}
             try {
                 wm.addView(bubble, bubbleParams);
@@ -399,7 +399,7 @@ public class FloatingBubbleService extends Service {
             Log.w(TAG, "setVisibility(GONE) on bubble failed", e);
         }
         try {
-            if (bubble.isAttachedToWindow()) wm.removeView(bubble);
+            if (bubble.isAttachedToWindow()) wm.removeViewImmediate(bubble);
         } catch (Exception e) {
             Log.w(TAG, "removeView on bubble failed", e);
         }
@@ -416,7 +416,7 @@ public class FloatingBubbleService extends Service {
         hideRemoveZone();
         if (bubble != null && bubble.isAttachedToWindow()) {
             try {
-                wm.removeView(bubble);
+                wm.removeViewImmediate(bubble);
             } catch (Exception e) {
                 Log.w(TAG, "removeView in onDestroy failed", e);
             }

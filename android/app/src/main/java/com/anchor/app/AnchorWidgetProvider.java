@@ -25,6 +25,7 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
     public static final String PREFS = "anchor_widget_prefs";
     public static final String KEY_BG = "bg_color";
     public static final String KEY_BG_ALPHA = "bg_alpha"; // 0-255, default fully opaque
+    public static final String KEY_TEXT_COLOR = "text_color";
     public static final String KEY_URLS = "clip_urls";
     public static final String KEY_DAILY = "daily_urls";
     public static final String KEY_HILLEL = "hillel_urls";
@@ -182,6 +183,10 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
 
         String action = prefs.getString(KEY_ACTION_PREFIX + id, "vayimaen");
         views.setTextViewText(R.id.widget_label, labelFor(action));
+        try {
+            views.setTextColor(R.id.widget_label,
+                Color.parseColor(prefs.getString(KEY_TEXT_COLOR, "#FFFFFF")));
+        } catch (Exception ignored) {}
 
         // Main row: performs the current action.
         Intent click = new Intent(context, AnchorWidgetProvider.class);
@@ -231,6 +236,14 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         int clamped = Math.max(0, Math.min(255, alpha));
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putInt(KEY_BG_ALPHA, clamped).apply();
+        Intent i = new Intent(context, AnchorWidgetProvider.class);
+        i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        context.sendBroadcast(i);
+    }
+
+    public static void setTextColor(Context context, String hexColor) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_TEXT_COLOR, hexColor).apply();
         Intent i = new Intent(context, AnchorWidgetProvider.class);
         i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         context.sendBroadcast(i);

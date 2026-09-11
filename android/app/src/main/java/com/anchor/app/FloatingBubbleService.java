@@ -113,6 +113,10 @@ public class FloatingBubbleService extends Service {
     }
 
     private void applyMode() {
+        // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
+        Toast.makeText(this, "DEBUG: applyMode mode=" + mode
+            + " userHidden=" + userHidden + " appInForeground=" + appInForeground,
+            Toast.LENGTH_LONG).show();
         if (handler != null) handler.removeCallbacksAndMessages(null);
         switch (mode) {
             case "off":

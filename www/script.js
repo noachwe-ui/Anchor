@@ -190,9 +190,13 @@ renderChizukList();
 updateChizukButton();
 
 // Widget appearance (color + opacity) — applies to all Anchor widgets.
-document.querySelectorAll(".widget-swatch").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const color = btn.getAttribute("data-color");
+const widgetColorPicker = document.getElementById("widget-color-picker");
+if (widgetColorPicker) {
+  const savedColor = localStorage.getItem("anchor-widget-color");
+  if (savedColor) widgetColorPicker.value = savedColor;
+  // "change" fires once the picker closes, not on every drag frame inside it.
+  widgetColorPicker.addEventListener("change", () => {
+    const color = widgetColorPicker.value;
     localStorage.setItem("anchor-widget-color", color);
     if (window.AnchorNative && window.AnchorNative.setWidgetColor) {
       window.AnchorNative.setWidgetColor(color);
@@ -200,7 +204,7 @@ document.querySelectorAll(".widget-swatch").forEach((btn) => {
     const status = document.getElementById("widget-appearance-status");
     if (status) status.textContent = "Widget color updated";
   });
-});
+}
 
 const widgetOpacityInput = document.getElementById("widget-opacity");
 if (widgetOpacityInput) {

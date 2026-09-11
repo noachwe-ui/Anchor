@@ -71,9 +71,16 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        Intent bg = new Intent(this, FloatingBubbleService.class);
-        bg.setAction(FloatingBubbleService.ACTION_APP_BACKGROUND);
-        startService(bg);
+        try {
+            Intent bg = new Intent(this, FloatingBubbleService.class);
+            bg.setAction(FloatingBubbleService.ACTION_APP_BACKGROUND);
+            startService(bg);
+        } catch (Exception e) {
+            // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
+            android.widget.Toast.makeText(this,
+                "DEBUG: onPause startService FAILED: " + e,
+                android.widget.Toast.LENGTH_LONG).show();
+        }
     }
 
     private static final int[] SYNC_RETRY_DELAYS_MS = { 400, 800, 1500 };

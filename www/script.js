@@ -189,6 +189,24 @@ loadModeUI();
 renderChizukList();
 updateChizukButton();
 
+// TEMPORARY DEBUG — for diagnosing the bubble persistence bug. Remove this
+// block and the matching Settings section once it's fixed.
+const refreshLogBtn = document.getElementById("refresh-log-btn");
+const debugLogOutput = document.getElementById("debug-log-output");
+if (refreshLogBtn) refreshLogBtn.addEventListener("click", () => {
+  if (window.AnchorNative && window.AnchorNative.getDebugLog) {
+    debugLogOutput.value = window.AnchorNative.getDebugLog();
+    debugLogOutput.scrollTop = debugLogOutput.scrollHeight;
+  }
+});
+const clearLogBtn = document.getElementById("clear-log-btn");
+if (clearLogBtn) clearLogBtn.addEventListener("click", () => {
+  if (window.AnchorNative && window.AnchorNative.clearDebugLog) {
+    window.AnchorNative.clearDebugLog();
+    if (debugLogOutput) debugLogOutput.value = "";
+  }
+});
+
 // Widget appearance (color + opacity) — applies to all Anchor widgets.
 const widgetColorPicker = document.getElementById("widget-color-picker");
 if (widgetColorPicker) {

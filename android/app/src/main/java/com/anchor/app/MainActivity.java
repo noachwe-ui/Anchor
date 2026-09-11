@@ -6,12 +6,26 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     public static final String PREFS = "anchor_prefs";
     public static final String KEY_MODE = "bubble_mode";
+
+    // TEMPORARY DEBUG — same log file FloatingBubbleService writes to
+    // (both are the same app, same internal storage). Remove this method
+    // and all its call sites once the persistence bug is fixed.
+    private void debugLog(String msg) {
+        try {
+            java.io.File f = new java.io.File(getFilesDir(), "anchor_debug.log");
+            java.io.FileWriter fw = new java.io.FileWriter(f, true);
+            fw.write(new java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+                .format(new java.util.Date()) + " [Main] " + msg + "\n");
+            fw.close();
+        } catch (Exception ignored) {}
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -51,6 +65,29 @@ public class MainActivity extends BridgeActivity {
             public void setWidgetTextColor(String hex) {
                 runOnUiThread(() -> AnchorWidgetProvider.setTextColor(MainActivity.this, hex));
             }
+            @JavascriptInterface
+            public String getDebugLog() {
+                try {
+                    java.io.File f = new java.io.File(getFilesDir(), "anchor_debug.log");
+                    if (!f.exists()) return "(no log yet)";
+                    java.io.FileInputStream fis = new java.io.FileInputStream(f);
+                    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = fis.read(buf)) != -1) bos.write(buf, 0, n);
+                    fis.close();
+                    return bos.toString("UTF-8");
+                } catch (Exception e) {
+                    return "(error reading log: " + e + ")";
+                }
+            }
+            @JavascriptInterface
+            public void clearDebugLog() {
+                try {
+                    java.io.File f = new java.io.File(getFilesDir(), "anchor_debug.log");
+                    if (f.exists()) f.delete();
+                } catch (Exception ignored) {}
+            }
         }, "AnchorNative");
 
         // After web loads, sync mode from localStorage. script.js may not
@@ -68,6 +105,7 @@ public class MainActivity extends BridgeActivity {
         Intent fg = new Intent(this, FloatingBubbleService.class);
         fg.setAction(FloatingBubbleService.ACTION_APP_FOREGROUND);
         startService(fg);
+        debugLog("onResume: sent APP_FOREGROUND");
         // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
         android.widget.Toast.makeText(this, "DEBUG: sent APP_FOREGROUND", android.widget.Toast.LENGTH_SHORT).show();
     }
@@ -79,7 +117,9 @@ public class MainActivity extends BridgeActivity {
             Intent bg = new Intent(this, FloatingBubbleService.class);
             bg.setAction(FloatingBubbleService.ACTION_APP_BACKGROUND);
             startService(bg);
+            debugLog("onPause: sent APP_BACKGROUND");
         } catch (Exception e) {
+            debugLog("onPause: startService FAILED: " + Log.getStackTraceString(e));
             // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
             android.widget.Toast.makeText(this,
                 "DEBUG: onPause startService FAILED: " + e,

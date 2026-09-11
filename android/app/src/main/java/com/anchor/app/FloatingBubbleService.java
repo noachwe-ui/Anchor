@@ -77,10 +77,25 @@ public class FloatingBubbleService extends Service {
         applyMode();
     }
 
+    // TEMPORARY DEBUG — writes to internal storage (no permissions needed).
+    // Read via the in-app Debug Log viewer in Settings. Remove this whole
+    // method and all its call sites once the persistence bug is fixed.
+    private void debugLog(String msg) {
+        try {
+            java.io.File f = new java.io.File(getFilesDir(), "anchor_debug.log");
+            java.io.FileWriter fw = new java.io.FileWriter(f, true);
+            fw.write(new java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+                .format(new java.util.Date()) + " [FBS] " + msg + "\n");
+            fw.close();
+        } catch (Exception ignored) {}
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
+            debugLog("onStartCommand action=" + action + " mode=" + mode
+                + " userHidden=" + userHidden + " appInForeground=" + appInForeground);
             if (ACTION_APPLY_MODE.equals(action)) {
                 String m = intent.getStringExtra("mode");
                 if (m != null && !m.isEmpty()) {
@@ -113,10 +128,8 @@ public class FloatingBubbleService extends Service {
     }
 
     private void applyMode() {
-        // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
-        Toast.makeText(this, "DEBUG: applyMode mode=" + mode
-            + " userHidden=" + userHidden + " appInForeground=" + appInForeground,
-            Toast.LENGTH_LONG).show();
+        debugLog("applyMode mode=" + mode + " userHidden=" + userHidden
+            + " appInForeground=" + appInForeground);
         if (handler != null) handler.removeCallbacksAndMessages(null);
         switch (mode) {
             case "off":
@@ -355,22 +368,33 @@ public class FloatingBubbleService extends Service {
     }
 
     private void showBubble() {
-        if (bubble == null || bubbleParams == null) return;
-        if ("off".equals(mode)) return;
+        if (bubble == null || bubbleParams == null) {
+            debugLog("showBubble: ABORT bubble/params null");
+            return;
+        }
+        if ("off".equals(mode)) {
+            debugLog("showBubble: ABORT mode=off");
+            return;
+        }
         if (appInForeground) {
+            debugLog("showBubble: BLOCKED appInForeground=true");
             // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
             Toast.makeText(this, "DEBUG: show blocked (appInForeground)", Toast.LENGTH_SHORT).show();
             return;
         }
+        debugLog("showBubble: attempting, isAttached=" + bubble.isAttachedToWindow());
         try {
             if (!bubble.isAttachedToWindow()) {
                 wm.addView(bubble, bubbleParams);
+                debugLog("showBubble: addView OK");
             } else {
                 bubble.setVisibility(View.VISIBLE);
                 wm.updateViewLayout(bubble, bubbleParams);
+                debugLog("showBubble: already attached, updateViewLayout OK");
             }
             visible = true;
         } catch (Exception e) {
+            debugLog("showBubble: PRIMARY FAILED: " + Log.getStackTraceString(e));
             Log.w(TAG, "showBubble failed, retrying once", e);
             // The view may be in an inconsistent attached state — force a
             // clean detach before retrying, rather than trusting whatever
@@ -381,7 +405,9 @@ public class FloatingBubbleService extends Service {
             try {
                 wm.addView(bubble, bubbleParams);
                 visible = true;
+                debugLog("showBubble: RETRY OK");
             } catch (Exception e2) {
+                debugLog("showBubble: RETRY FAILED: " + Log.getStackTraceString(e2));
                 Log.e(TAG, "showBubble retry also failed", e2);
                 // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
                 Toast.makeText(this, "DEBUG: showBubble FAILED: " + e2, Toast.LENGTH_LONG).show();
@@ -393,14 +419,20 @@ public class FloatingBubbleService extends Service {
     private void hideBubble() {
         hideRemoveZone();
         if (bubble == null) return;
+        debugLog("hideBubble: isAttached=" + bubble.isAttachedToWindow());
         try {
             bubble.setVisibility(View.GONE);
         } catch (Exception e) {
+            debugLog("hideBubble: setVisibility(GONE) FAILED: " + Log.getStackTraceString(e));
             Log.w(TAG, "setVisibility(GONE) on bubble failed", e);
         }
         try {
-            if (bubble.isAttachedToWindow()) wm.removeViewImmediate(bubble);
+            if (bubble.isAttachedToWindow()) {
+                wm.removeViewImmediate(bubble);
+                debugLog("hideBubble: removeViewImmediate OK");
+            }
         } catch (Exception e) {
+            debugLog("hideBubble: removeViewImmediate FAILED: " + Log.getStackTraceString(e));
             Log.w(TAG, "removeView on bubble failed", e);
         }
         // Always resync regardless of whether removeView above succeeded —

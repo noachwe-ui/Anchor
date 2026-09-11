@@ -94,6 +94,16 @@
     </section>
 
     <section class="settings-card">
+      <h2>Debug Log</h2>
+      <p class="hint">Temporary — for diagnosing the bubble issue</p>
+      <textarea id="debug-log-output" readonly rows="10" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="button" id="refresh-log-btn" class="btn secondary">Refresh Log</button>
+        <button type="button" id="clear-log-btn" class="btn secondary">Clear Log</button>
+      </div>
+    </section>
+
+    <section class="settings-card">
       <h2>Widgets</h2>
       <p class="hint">
         Add widgets from your home screen:<br>

@@ -363,25 +363,29 @@ public class FloatingBubbleService extends Service {
             return;
         }
         try {
-            if (!visible) {
+            if (!bubble.isAttachedToWindow()) {
                 wm.addView(bubble, bubbleParams);
-                visible = true;
             } else {
                 bubble.setVisibility(View.VISIBLE);
-                try {
-                    wm.updateViewLayout(bubble, bubbleParams);
-                } catch (Exception ex) {
-                    Log.w(TAG, "updateViewLayout in showBubble failed", ex);
-                }
+                wm.updateViewLayout(bubble, bubbleParams);
             }
+            visible = true;
         } catch (Exception e) {
-            Log.w(TAG, "addView in showBubble failed, retrying once", e);
-            visible = false;
+            Log.w(TAG, "showBubble failed, retrying once", e);
+            // The view may be in an inconsistent attached state — force a
+            // clean detach before retrying, rather than trusting whatever
+            // state we thought we were in.
+            try {
+                if (bubble.isAttachedToWindow()) wm.removeView(bubble);
+            } catch (Exception ignored2) {}
             try {
                 wm.addView(bubble, bubbleParams);
                 visible = true;
             } catch (Exception e2) {
-                Log.e(TAG, "Retry of addView in showBubble also failed", e2);
+                Log.e(TAG, "showBubble retry also failed", e2);
+                // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
+                Toast.makeText(this, "DEBUG: showBubble FAILED: " + e2, Toast.LENGTH_LONG).show();
+                visible = false;
             }
         }
     }
@@ -395,10 +399,14 @@ public class FloatingBubbleService extends Service {
             Log.w(TAG, "setVisibility(GONE) on bubble failed", e);
         }
         try {
-            if (visible) { wm.removeView(bubble); visible = false; }
+            if (bubble.isAttachedToWindow()) wm.removeView(bubble);
         } catch (Exception e) {
             Log.w(TAG, "removeView on bubble failed", e);
         }
+        // Always resync regardless of whether removeView above succeeded —
+        // this is what was getting stuck permanently true if removeView
+        // ever threw, silently blocking every future showBubble() call.
+        visible = false;
     }
 
     @Override
@@ -406,7 +414,7 @@ public class FloatingBubbleService extends Service {
         super.onDestroy();
         if (handler != null) handler.removeCallbacksAndMessages(null);
         hideRemoveZone();
-        if (visible && bubble != null) {
+        if (bubble != null && bubble.isAttachedToWindow()) {
             try {
                 wm.removeView(bubble);
             } catch (Exception e) {

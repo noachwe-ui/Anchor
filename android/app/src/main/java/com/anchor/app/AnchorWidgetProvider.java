@@ -166,17 +166,18 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_anchor);
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
 
-        // Tint the pill background via colorFilter, not setBackgroundColor —
-        // this preserves the rounded corners from widget_pill_shape.xml
-        // instead of flattening them into a plain rectangle. ImageView's
-        // setColorFilter(int) uses PorterDuff.Mode.SRC_ATOP, which respects
-        // the color's own alpha channel — that's what makes opacity work,
-        // not just color.
+        // Color and opacity are applied as two separate, independent calls:
+        // setColorFilter (SRC_ATOP, the ImageView default) tints the RGB of
+        // the pill but mathematically PRESERVES the destination's existing
+        // opacity — it can never make the widget more see-through no matter
+        // how low an alpha you feed it. Real transparency instead comes
+        // from setImageAlpha, which genuinely blends the drawable against
+        // whatever is behind it (the home screen).
         try {
             int baseColor = Color.parseColor(prefs.getString(KEY_BG, "#FFFFFF"));
             int alpha = prefs.getInt(KEY_BG_ALPHA, 255);
-            int tinted = (alpha << 24) | (baseColor & 0x00FFFFFF);
-            views.setInt(R.id.widget_pill_bg, "setColorFilter", tinted);
+            views.setInt(R.id.widget_pill_bg, "setColorFilter", baseColor);
+            views.setInt(R.id.widget_pill_bg, "setImageAlpha", alpha);
         } catch (Exception ignored) {}
 
         String action = prefs.getString(KEY_ACTION_PREFIX + id, "vayimaen");

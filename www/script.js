@@ -404,5 +404,93 @@ if (saveHomeBtn) {
 
 loadHomeUI();
 
+// Backup & Restore — fully local: reads/writes the same localStorage keys
+// every other control here already uses, and re-applies each one through
+// the exact same functions/bridge calls as when the user changes a
+// setting manually. Nothing is written to disk or sent anywhere.
+const BACKUP_KEYS = [
+  "anchor-note", "anchor-chizuk-links", "anchor-bubble-mode",
+  "anchor-bubble-color", "anchor-bubble-opacity", "anchor-bubble-size",
+  "anchor-bubble-corner", "anchor-bubble-action",
+  "anchor-widget-color", "anchor-widget-text-color", "anchor-widget-opacity",
+  "anchor-home-mode", "anchor-home-image"
+];
+
+const exportBackupBtn = document.getElementById("export-backup-btn");
+if (exportBackupBtn) exportBackupBtn.addEventListener("click", () => {
+  const data = {};
+  BACKUP_KEYS.forEach((k) => {
+    const v = localStorage.getItem(k);
+    if (v !== null) data[k] = v;
+  });
+  const out = document.getElementById("backup-output");
+  if (out) out.value = JSON.stringify(data);
+  const status = document.getElementById("backup-status");
+  if (status) status.textContent = "Backup created — copy the text above and save it somewhere safe.";
+});
+
+const importBackupBtn = document.getElementById("import-backup-btn");
+if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
+  const input = document.getElementById("backup-input");
+  const status = document.getElementById("backup-status");
+  if (!input || !input.value.trim()) return;
+  let data;
+  try {
+    data = JSON.parse(input.value.trim());
+  } catch (e) {
+    if (status) status.textContent = "That doesn't look like a valid backup.";
+    return;
+  }
+  Object.keys(data).forEach((k) => localStorage.setItem(k, data[k]));
+
+  if (data["anchor-note"] !== undefined && noteEl) noteEl.value = data["anchor-note"];
+  if (data["anchor-chizuk-links"] !== undefined) { renderChizukList(); updateChizukButton(); }
+  if (data["anchor-bubble-mode"] !== undefined && window.AnchorNative && window.AnchorNative.setBubbleMode) {
+    window.AnchorNative.setBubbleMode(data["anchor-bubble-mode"]);
+  }
+  if (data["anchor-bubble-color"] !== undefined) {
+    if (bubbleColorPicker) bubbleColorPicker.value = data["anchor-bubble-color"];
+    if (window.AnchorNative && window.AnchorNative.setBubbleColor) window.AnchorNative.setBubbleColor(data["anchor-bubble-color"]);
+  }
+  if (data["anchor-bubble-opacity"] !== undefined) {
+    if (bubbleOpacityInput) bubbleOpacityInput.value = data["anchor-bubble-opacity"];
+    if (window.AnchorNative && window.AnchorNative.setBubbleAlpha) {
+      window.AnchorNative.setBubbleAlpha(Math.round(parseInt(data["anchor-bubble-opacity"], 10) * 255 / 100));
+    }
+  }
+  if (data["anchor-bubble-size"] !== undefined) {
+    if (bubbleSizeInput) bubbleSizeInput.value = data["anchor-bubble-size"];
+    if (window.AnchorNative && window.AnchorNative.setBubbleSize) {
+      window.AnchorNative.setBubbleSize(parseInt(data["anchor-bubble-size"], 10));
+    }
+  }
+  if (data["anchor-bubble-corner"] !== undefined && window.AnchorNative && window.AnchorNative.setBubbleCorner) {
+    window.AnchorNative.setBubbleCorner(data["anchor-bubble-corner"]);
+  }
+  if (data["anchor-bubble-action"] !== undefined && window.AnchorNative && window.AnchorNative.setBubbleAction) {
+    window.AnchorNative.setBubbleAction(data["anchor-bubble-action"]);
+  }
+  if (data["anchor-widget-color"] !== undefined) {
+    if (widgetColorPicker) widgetColorPicker.value = data["anchor-widget-color"];
+    if (window.AnchorNative && window.AnchorNative.setWidgetColor) window.AnchorNative.setWidgetColor(data["anchor-widget-color"]);
+  }
+  if (data["anchor-widget-text-color"] !== undefined) {
+    if (widgetTextColorPicker) widgetTextColorPicker.value = data["anchor-widget-text-color"];
+    if (window.AnchorNative && window.AnchorNative.setWidgetTextColor) window.AnchorNative.setWidgetTextColor(data["anchor-widget-text-color"]);
+  }
+  if (data["anchor-widget-opacity"] !== undefined) {
+    if (widgetOpacityInput) widgetOpacityInput.value = data["anchor-widget-opacity"];
+    if (window.AnchorNative && window.AnchorNative.setWidgetAlpha) {
+      window.AnchorNative.setWidgetAlpha(Math.round(parseInt(data["anchor-widget-opacity"], 10) * 255 / 100));
+    }
+  }
+  if (data["anchor-home-mode"] !== undefined || data["anchor-home-image"] !== undefined) {
+    loadHomeUI();
+  }
+  loadModeUI();
+
+  if (status) status.textContent = "Backup restored.";
+});
+
 loadData();
 

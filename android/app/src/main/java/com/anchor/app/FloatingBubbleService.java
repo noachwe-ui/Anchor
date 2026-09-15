@@ -226,12 +226,16 @@ public class FloatingBubbleService extends Service {
     // widget, View.setAlpha() genuinely blends the whole bubble against
     // whatever's behind it — real transparency, independent of the tint.
     private void applyBubbleAppearance() {
-        if (bubble == null || !(bubble instanceof ImageView)) return;
+        if (bubble == null) return;
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         String colorHex = prefs.getString(KEY_BUBBLE_COLOR, "#FF9F7A");
         int alpha = prefs.getInt(KEY_BUBBLE_ALPHA, 255);
         try {
-            ((ImageView) bubble).setColorFilter(Color.parseColor(colorHex));
+            if (bubble instanceof ImageView) {
+                ((ImageView) bubble).setColorFilter(Color.parseColor(colorHex));
+            } else if (bubble instanceof TextView) {
+                ((TextView) bubble).setTextColor(Color.parseColor(colorHex));
+            }
         } catch (Exception ignored) {}
         bubble.setAlpha(alpha / 255f);
     }
@@ -308,9 +312,24 @@ public class FloatingBubbleService extends Service {
     }
 
     private void makeBubble() {
-        ImageView iv = new ImageView(this);
-        iv.setImageResource(R.drawable.ic_anchor_bubble);
-        bubble = iv;
+        View bubbleView;
+        try {
+            ImageView iv = new ImageView(this);
+            iv.setImageResource(R.drawable.ic_anchor_bubble);
+            bubbleView = iv;
+        } catch (Exception e) {
+            // A bad vector resource would otherwise crash onCreate() here
+            // and take the whole service down with no visible bubble and
+            // no crash dialog (it's a background service). Degrade instead.
+            Log.e(TAG, "Failed to load anchor icon, falling back to text glyph", e);
+            TextView tv = new TextView(this);
+            tv.setText("⚓");
+            tv.setTextSize(22);
+            tv.setPadding(28, 28, 28, 28);
+            tv.setTextColor(Color.WHITE);
+            bubbleView = tv;
+        }
+        bubble = bubbleView;
 
         bubbleParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,

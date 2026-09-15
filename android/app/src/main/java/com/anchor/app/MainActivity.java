@@ -79,6 +79,15 @@ public class MainActivity extends BridgeActivity {
                 });
             }
             @JavascriptInterface
+            public void setBubbleSize(int dp) {
+                runOnUiThread(() -> {
+                    int clamped = Math.max(24, Math.min(120, dp));
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putInt(FloatingBubbleService.KEY_BUBBLE_SIZE_DP, clamped).apply();
+                    notifyBubbleAppearanceChanged();
+                });
+            }
+            @JavascriptInterface
             public void setBubbleAction(String action) {
                 runOnUiThread(() -> getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                     .putString(FloatingBubbleService.KEY_BUBBLE_ACTION, action).apply());

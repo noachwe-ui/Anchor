@@ -216,6 +216,21 @@ if (bubbleOpacityInput) {
   });
 }
 
+const bubbleSizeInput = document.getElementById("bubble-size");
+if (bubbleSizeInput) {
+  const savedSize = localStorage.getItem("anchor-bubble-size");
+  if (savedSize) bubbleSizeInput.value = savedSize;
+  bubbleSizeInput.addEventListener("change", () => {
+    const dp = parseInt(bubbleSizeInput.value, 10);
+    localStorage.setItem("anchor-bubble-size", String(dp));
+    if (window.AnchorNative && window.AnchorNative.setBubbleSize) {
+      window.AnchorNative.setBubbleSize(dp);
+    }
+    const status = document.getElementById("bubble-appearance-status");
+    if (status) status.textContent = "Bubble size: " + dp + "dp";
+  });
+}
+
 document.querySelectorAll(".bubble-corner-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const corner = btn.getAttribute("data-corner");

@@ -43,6 +43,7 @@ public class FloatingBubbleService extends Service {
     public static final String KEY_BUBBLE_ALPHA = "bubble_alpha";
     public static final String KEY_BUBBLE_CORNER = "bubble_corner"; // top_left/top_right/bottom_left/bottom_right
     public static final String KEY_BUBBLE_ACTION = "bubble_action"; // vayimaen/daily/hillel/open_app
+    public static final String KEY_BUBBLE_SIZE_DP = "bubble_size_dp";
     private static final String TAG = "FloatingBubble";
 
     // "targets" mode polls UsageStatsManager on this cadence when the
@@ -225,6 +226,12 @@ public class FloatingBubbleService extends Service {
     // A plain custom View has no RemoteViews constraints, so unlike the
     // widget, View.setAlpha() genuinely blends the whole bubble against
     // whatever's behind it — real transparency, independent of the tint.
+    private int bubbleSizePx() {
+        int sizeDp = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE)
+            .getInt(KEY_BUBBLE_SIZE_DP, 56);
+        return (int) (sizeDp * getResources().getDisplayMetrics().density);
+    }
+
     private void applyBubbleAppearance() {
         if (bubble == null) return;
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
@@ -238,6 +245,21 @@ public class FloatingBubbleService extends Service {
             }
         } catch (Exception ignored) {}
         bubble.setAlpha(alpha / 255f);
+
+        // Resize the WINDOW itself (not just the icon) — the window now
+        // uses an exact pixel size instead of WRAP_CONTENT specifically so
+        // this works; WRAP_CONTENT would just re-measure to the drawable's
+        // own fixed intrinsic size regardless of any size preference.
+        if (bubbleParams != null) {
+            int sizePx = bubbleSizePx();
+            bubbleParams.width = sizePx;
+            bubbleParams.height = sizePx;
+            if (bubble.isAttachedToWindow()) {
+                try {
+                    wm.updateViewLayout(bubble, bubbleParams);
+                } catch (Exception ignored2) {}
+            }
+        }
     }
 
     // Same category vocabulary as the widget (vayimaen/daily/hillel/open_app),
@@ -276,11 +298,10 @@ public class FloatingBubbleService extends Service {
         if (bubbleParams == null || bubble == null) return;
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         String corner = prefs.getString(KEY_BUBBLE_CORNER, "top_left");
-        // Measure for real instead of guessing a pixel width — padding/text
-        // size can change the bubble's actual rendered size.
-        bubble.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        int bw = bubble.getMeasuredWidth();
-        int bh = bubble.getMeasuredHeight();
+        // bubbleParams.width/height are now an exact pixel size (see
+        // bubbleSizePx()), so use them directly instead of measuring.
+        int bw = bubbleParams.width;
+        int bh = bubbleParams.height;
         int margin = 40;
         int topY = 200;
         int bottomY = Math.max(topY, screenHeight - bh - margin - 150); // leave room for nav bar
@@ -331,9 +352,10 @@ public class FloatingBubbleService extends Service {
         }
         bubble = bubbleView;
 
+        int sizePx = bubbleSizePx();
         bubbleParams = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            sizePx,
+            sizePx,
             overlayType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT);

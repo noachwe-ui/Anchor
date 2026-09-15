@@ -124,7 +124,7 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         updateWidget(context, AppWidgetManager.getInstance(context), id);
     }
 
-    private List<String> loadList(Context context, String prefKey, String assetPath) {
+    static List<String> loadList(Context context, String prefKey, String assetPath) {
         List<String> urls = new ArrayList<>();
         try {
             String json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

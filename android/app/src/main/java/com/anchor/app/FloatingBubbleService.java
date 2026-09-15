@@ -22,8 +22,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import java.util.List;
 
 public class FloatingBubbleService extends Service {
@@ -42,6 +42,7 @@ public class FloatingBubbleService extends Service {
     public static final String KEY_BUBBLE_COLOR = "bubble_color";
     public static final String KEY_BUBBLE_ALPHA = "bubble_alpha";
     public static final String KEY_BUBBLE_CORNER = "bubble_corner"; // top_left/top_right/bottom_left/bottom_right
+    public static final String KEY_BUBBLE_ACTION = "bubble_action"; // vayimaen/daily/hillel/open_app
     private static final String TAG = "FloatingBubble";
 
     // "targets" mode polls UsageStatsManager on this cadence when the
@@ -86,25 +87,10 @@ public class FloatingBubbleService extends Service {
         applyMode();
     }
 
-    // TEMPORARY DEBUG — writes to internal storage (no permissions needed).
-    // Read via the in-app Debug Log viewer in Settings. Remove this whole
-    // method and all its call sites once the persistence bug is fixed.
-    private void debugLog(String msg) {
-        try {
-            java.io.File f = new java.io.File(getFilesDir(), "anchor_debug.log");
-            java.io.FileWriter fw = new java.io.FileWriter(f, true);
-            fw.write(new java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
-                .format(new java.util.Date()) + " [FBS] " + msg + "\n");
-            fw.close();
-        } catch (Exception ignored) {}
-    }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
-            debugLog("onStartCommand action=" + action + " mode=" + mode
-                + " userHidden=" + userHidden + " appInForeground=" + appInForeground);
             if (ACTION_APPLY_MODE.equals(action)) {
                 String m = intent.getStringExtra("mode");
                 if (m != null && !m.isEmpty()) {
@@ -126,8 +112,6 @@ public class FloatingBubbleService extends Service {
                 appInForeground = true;
                 userHidden = false;
                 hideBubble();
-                // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
-                Toast.makeText(this, "DEBUG: FBS received APP_FOREGROUND, hid bubble", Toast.LENGTH_SHORT).show();
             } else if (ACTION_APP_BACKGROUND.equals(action)) {
                 appInForeground = false;
                 applyMode();
@@ -139,8 +123,6 @@ public class FloatingBubbleService extends Service {
     }
 
     private void applyMode() {
-        debugLog("applyMode mode=" + mode + " userHidden=" + userHidden
-            + " appInForeground=" + appInForeground);
         if (handler != null) handler.removeCallbacksAndMessages(null);
         switch (mode) {
             case "off":
@@ -241,21 +223,45 @@ public class FloatingBubbleService extends Service {
     }
 
     // A plain custom View has no RemoteViews constraints, so unlike the
-    // widget, a single View.setAlpha() genuinely blends the whole bubble
-    // (background + icon) against whatever's behind it — no separate
-    // colorFilter/imageAlpha split needed here.
+    // widget, View.setAlpha() genuinely blends the whole bubble against
+    // whatever's behind it — real transparency, independent of the tint.
     private void applyBubbleAppearance() {
-        if (bubble == null) return;
+        if (bubble == null || !(bubble instanceof ImageView)) return;
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         String colorHex = prefs.getString(KEY_BUBBLE_COLOR, "#FF9F7A");
         int alpha = prefs.getInt(KEY_BUBBLE_ALPHA, 255);
         try {
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(Color.parseColor(colorHex));
-            bg.setCornerRadius(80);
-            bubble.setBackground(bg);
+            ((ImageView) bubble).setColorFilter(Color.parseColor(colorHex));
         } catch (Exception ignored) {}
         bubble.setAlpha(alpha / 255f);
+    }
+
+    // Same category vocabulary as the widget (vayimaen/daily/hillel/open_app),
+    // reusing AnchorWidgetProvider.loadList so the URL lists aren't duplicated.
+    private void openBubbleAction() {
+        SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
+        String action = prefs.getString(KEY_BUBBLE_ACTION, "open_app");
+        if ("open_app".equals(action)) {
+            Intent i = new Intent(FloatingBubbleService.this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(i);
+            return;
+        }
+        List<String> urls;
+        if ("daily".equals(action)) {
+            urls = AnchorWidgetProvider.loadList(this, AnchorWidgetProvider.KEY_DAILY, "public/daily_dose.json");
+        } else if ("hillel".equals(action)) {
+            urls = AnchorWidgetProvider.loadList(this, AnchorWidgetProvider.KEY_HILLEL, "public/hillel_eisenberg.json");
+        } else {
+            urls = AnchorWidgetProvider.loadList(this, AnchorWidgetProvider.KEY_URLS, "public/urls.json");
+        }
+        if (urls.isEmpty()) return;
+        String link = urls.get(new java.util.Random().nextInt(urls.size()));
+        try {
+            Intent view = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(link));
+            view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(view);
+        } catch (Exception ignored) {}
     }
 
     // Called only when re-attaching from a fully hidden state (not during
@@ -302,16 +308,9 @@ public class FloatingBubbleService extends Service {
     }
 
     private void makeBubble() {
-        TextView tv = new TextView(this);
-        tv.setText("⚓");
-        tv.setTextSize(22);
-        tv.setPadding(28, 28, 28, 28);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.parseColor("#FF9F7A"));
-        bg.setCornerRadius(80);
-        tv.setBackground(bg);
-        tv.setTextColor(Color.WHITE);
-        bubble = tv;
+        ImageView iv = new ImageView(this);
+        iv.setImageResource(R.drawable.ic_anchor_bubble);
+        bubble = iv;
 
         bubbleParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -357,9 +356,7 @@ public class FloatingBubbleService extends Service {
                         return true;
                     }
                     if (!moved) {
-                        Intent i = new Intent(FloatingBubbleService.this, MainActivity.class);
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                        startActivity(i);
+                        openBubbleAction();
                     }
                     return true;
                 }
@@ -434,34 +431,19 @@ public class FloatingBubbleService extends Service {
     }
 
     private void showBubble() {
-        if (bubble == null || bubbleParams == null) {
-            debugLog("showBubble: ABORT bubble/params null");
-            return;
-        }
-        if ("off".equals(mode)) {
-            debugLog("showBubble: ABORT mode=off");
-            return;
-        }
-        if (appInForeground) {
-            debugLog("showBubble: BLOCKED appInForeground=true");
-            // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
-            Toast.makeText(this, "DEBUG: show blocked (appInForeground)", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        debugLog("showBubble: attempting, isAttached=" + bubble.isAttachedToWindow());
+        if (bubble == null || bubbleParams == null) return;
+        if ("off".equals(mode)) return;
+        if (appInForeground) return; // never show over Anchor's own screens
         try {
             bubble.setVisibility(View.VISIBLE);
             if (!bubble.isAttachedToWindow()) {
                 resetBubblePosition();
                 wm.addView(bubble, bubbleParams);
-                debugLog("showBubble: addView OK");
             } else {
                 wm.updateViewLayout(bubble, bubbleParams);
-                debugLog("showBubble: already attached, updateViewLayout OK");
             }
             visible = true;
         } catch (Exception e) {
-            debugLog("showBubble: PRIMARY FAILED: " + Log.getStackTraceString(e));
             Log.w(TAG, "showBubble failed, retrying once", e);
             // The view may be in an inconsistent attached state — force a
             // clean detach before retrying, rather than trusting whatever
@@ -472,12 +454,8 @@ public class FloatingBubbleService extends Service {
             try {
                 wm.addView(bubble, bubbleParams);
                 visible = true;
-                debugLog("showBubble: RETRY OK");
             } catch (Exception e2) {
-                debugLog("showBubble: RETRY FAILED: " + Log.getStackTraceString(e2));
                 Log.e(TAG, "showBubble retry also failed", e2);
-                // TEMPORARY DEBUG — remove once the persistence bug is confirmed fixed.
-                Toast.makeText(this, "DEBUG: showBubble FAILED: " + e2, Toast.LENGTH_LONG).show();
                 visible = false;
             }
         }
@@ -486,20 +464,14 @@ public class FloatingBubbleService extends Service {
     private void hideBubble() {
         hideRemoveZone();
         if (bubble == null) return;
-        debugLog("hideBubble: isAttached=" + bubble.isAttachedToWindow());
         try {
             bubble.setVisibility(View.GONE);
         } catch (Exception e) {
-            debugLog("hideBubble: setVisibility(GONE) FAILED: " + Log.getStackTraceString(e));
             Log.w(TAG, "setVisibility(GONE) on bubble failed", e);
         }
         try {
-            if (bubble.isAttachedToWindow()) {
-                wm.removeViewImmediate(bubble);
-                debugLog("hideBubble: removeViewImmediate OK");
-            }
+            if (bubble.isAttachedToWindow()) wm.removeViewImmediate(bubble);
         } catch (Exception e) {
-            debugLog("hideBubble: removeViewImmediate FAILED: " + Log.getStackTraceString(e));
             Log.w(TAG, "removeView on bubble failed", e);
         }
         // Always resync regardless of whether removeView above succeeded —

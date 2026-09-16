@@ -425,22 +425,32 @@ if (exportBackupBtn) exportBackupBtn.addEventListener("click", () => {
     const v = localStorage.getItem(k);
     if (v !== null) data[k] = v;
   });
-  const out = document.getElementById("backup-output");
-  if (out) out.value = JSON.stringify(data);
   const status = document.getElementById("backup-status");
-  if (status) status.textContent = "Backup created — copy the text above and save it somewhere safe.";
+  if (!(window.AnchorNative && window.AnchorNative.saveBackupFile)) {
+    if (status) status.textContent = "Backup isn't available on this build.";
+    return;
+  }
+  const result = window.AnchorNative.saveBackupFile(JSON.stringify(data));
+  if (status) status.textContent = result === "ok" ? "Backup saved." : "Could not save backup.";
 });
 
 const importBackupBtn = document.getElementById("import-backup-btn");
 if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
-  const input = document.getElementById("backup-input");
   const status = document.getElementById("backup-status");
-  if (!input || !input.value.trim()) return;
+  if (!(window.AnchorNative && window.AnchorNative.loadBackupFile)) {
+    if (status) status.textContent = "Restore isn't available on this build.";
+    return;
+  }
+  const raw = window.AnchorNative.loadBackupFile();
+  if (!raw) {
+    if (status) status.textContent = "No backup found yet — tap Backup first.";
+    return;
+  }
   let data;
   try {
-    data = JSON.parse(input.value.trim());
+    data = JSON.parse(raw);
   } catch (e) {
-    if (status) status.textContent = "That doesn't look like a valid backup.";
+    if (status) status.textContent = "Backup file is corrupted.";
     return;
   }
   Object.keys(data).forEach((k) => localStorage.setItem(k, data[k]));

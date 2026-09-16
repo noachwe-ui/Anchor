@@ -74,12 +74,11 @@
 
     <section class="settings-card">
       <h2>Backup & Restore</h2>
-      <p class="hint">Fully local — nothing leaves your device. Copy the text somewhere safe (Notes app, a text file); paste it back in below to restore.</p>
-      <button type="button" id="export-backup-btn" class="btn secondary">Create Backup</button>
-      <textarea id="backup-output" class="textarea-mono" readonly rows="6"></textarea>
-      <label class="hint" for="backup-input" style="display:block;">Restore from backup</label>
-      <textarea id="backup-input" class="textarea-mono" rows="6" placeholder="Paste backup text here"></textarea>
-      <button type="button" id="import-backup-btn" class="btn secondary">Restore Backup</button>
+      <p class="hint">Fully local — saved to a file on this device only, nothing leaves your phone.</p>
+      <div class="btn-grid">
+        <button type="button" id="export-backup-btn" class="btn secondary">Backup</button>
+        <button type="button" id="import-backup-btn" class="btn secondary">Restore</button>
+      </div>
       <p id="backup-status" class="hint"></p>
     </section>
 

@@ -92,6 +92,34 @@ public class MainActivity extends BridgeActivity {
                 runOnUiThread(() -> getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                     .putString(FloatingBubbleService.KEY_BUBBLE_ACTION, action).apply());
             }
+            @JavascriptInterface
+            public String saveBackupFile(String json) {
+                try {
+                    java.io.File f = new java.io.File(getExternalFilesDir(null), "anchor_backup.json");
+                    java.io.FileWriter fw = new java.io.FileWriter(f, false);
+                    fw.write(json);
+                    fw.close();
+                    return "ok";
+                } catch (Exception e) {
+                    return "error: " + e;
+                }
+            }
+            @JavascriptInterface
+            public String loadBackupFile() {
+                try {
+                    java.io.File f = new java.io.File(getExternalFilesDir(null), "anchor_backup.json");
+                    if (!f.exists()) return "";
+                    java.io.FileInputStream fis = new java.io.FileInputStream(f);
+                    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = fis.read(buf)) != -1) bos.write(buf, 0, n);
+                    fis.close();
+                    return bos.toString("UTF-8");
+                } catch (Exception e) {
+                    return "";
+                }
+            }
         }, "AnchorNative");
 
         // After web loads, sync mode from localStorage. script.js may not

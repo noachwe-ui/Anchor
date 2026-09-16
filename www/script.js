@@ -1,4 +1,3 @@
-let quotes = [];
 let urls = [];
 let dailyDose = [];
 let hillelLinks = [];
@@ -8,30 +7,15 @@ const MODE_KEY = "anchor-bubble-mode";
 async function loadData() {
   // Local-only: read the JSON files bundled inside the app. No network calls.
   try {
-    const [qRes, uRes, dRes, hRes] = await Promise.all([
-      fetch("quotes.json"),
+    const [uRes, dRes, hRes] = await Promise.all([
       fetch("urls.json"),
       fetch("daily_dose.json"),
       fetch("hillel_eisenberg.json")
     ]);
-    if (qRes.ok) quotes = await qRes.json();
     if (uRes.ok) urls = await uRes.json();
     if (dRes.ok) dailyDose = await dRes.json();
     if (hRes.ok) hillelLinks = await hRes.json();
-    showRandomQuote();
-  } catch (err) {
-    const qt = document.getElementById("quote-text");
-    if (qt) qt.textContent = "Take a slow breath. You are here now.";
-  }
-}
-
-function showRandomQuote() {
-  if (!quotes.length) return;
-  const item = quotes[Math.floor(Math.random() * quotes.length)];
-  const qt = document.getElementById("quote-text");
-  const qs = document.getElementById("quote-source");
-  if (qt) qt.textContent = item.quote;
-  if (qs) qs.textContent = item.source ? `— ${item.source}` : "";
+  } catch (err) {}
 }
 
 const dailyBtn = document.getElementById("daily-dose-btn");
@@ -130,19 +114,21 @@ function renderChizukList() {
   if (!list) return;
   const links = getChizukLinks();
   list.innerHTML = "";
+  if (links.length) list.className = "link-list";
   links.forEach((link, index) => {
     const row = document.createElement("div");
-    row.style.cssText = "display:flex;align-items:center;gap:8px;margin:8px 0;";
+    row.className = "link-row";
 
     const linkBtn = document.createElement("button");
-    linkBtn.className = "btn secondary";
-    linkBtn.style.cssText = "flex:1;text-align:left;font-size:0.9rem;padding:10px 12px;";
-    linkBtn.textContent = link.length > 40 ? link.slice(0, 37) + "..." : link;
+    linkBtn.className = "link-label";
+    linkBtn.textContent = link;
+    linkBtn.title = link;
     linkBtn.onclick = () => window.open(link, "_blank");
 
     const delBtn = document.createElement("button");
-    delBtn.textContent = "✕";
-    delBtn.style.cssText = "background:#ff6b6b;color:#fff;border:none;border-radius:50%;width:28px;height:28px;";
+    delBtn.textContent = "🗑";
+    delBtn.className = "icon-btn-sm";
+    delBtn.setAttribute("aria-label", "Remove link");
     delBtn.onclick = () => {
       links.splice(index, 1);
       saveChizukLinks(links);
@@ -158,7 +144,8 @@ function renderChizukList() {
 
 function updateChizukButton() {
   const btn = document.getElementById("chizuk-btn");
-  if (btn) btn.style.display = getChizukLinks().length ? "block" : "none";
+  if (!btn) return;
+  btn.classList.toggle("is-hidden", getChizukLinks().length === 0);
 }
 
 const addChizukBtn = document.getElementById("add-chizuk-btn");
@@ -187,9 +174,14 @@ if (chizukBtn) chizukBtn.addEventListener("click", () => {
 
 // Bubble appearance (color + opacity + reappear corner).
 const bubbleColorPicker = document.getElementById("bubble-color-picker");
+const bubbleColorHex = document.getElementById("bubble-color-hex");
 if (bubbleColorPicker) {
   const savedColor = localStorage.getItem("anchor-bubble-color");
   if (savedColor) bubbleColorPicker.value = savedColor;
+  if (bubbleColorHex) bubbleColorHex.textContent = bubbleColorPicker.value.toUpperCase();
+  bubbleColorPicker.addEventListener("input", () => {
+    if (bubbleColorHex) bubbleColorHex.textContent = bubbleColorPicker.value.toUpperCase();
+  });
   bubbleColorPicker.addEventListener("change", () => {
     const color = bubbleColorPicker.value;
     localStorage.setItem("anchor-bubble-color", color);
@@ -202,9 +194,14 @@ if (bubbleColorPicker) {
 }
 
 const bubbleOpacityInput = document.getElementById("bubble-opacity");
+const bubbleOpacityValue = document.getElementById("bubble-opacity-value");
 if (bubbleOpacityInput) {
   const savedBubbleOpacity = localStorage.getItem("anchor-bubble-opacity");
   if (savedBubbleOpacity) bubbleOpacityInput.value = savedBubbleOpacity;
+  if (bubbleOpacityValue) bubbleOpacityValue.textContent = bubbleOpacityInput.value + "%";
+  bubbleOpacityInput.addEventListener("input", () => {
+    if (bubbleOpacityValue) bubbleOpacityValue.textContent = bubbleOpacityInput.value + "%";
+  });
   bubbleOpacityInput.addEventListener("change", () => {
     const pct = parseInt(bubbleOpacityInput.value, 10);
     localStorage.setItem("anchor-bubble-opacity", String(pct));
@@ -217,9 +214,14 @@ if (bubbleOpacityInput) {
 }
 
 const bubbleSizeInput = document.getElementById("bubble-size");
+const bubbleSizeValue = document.getElementById("bubble-size-value");
 if (bubbleSizeInput) {
   const savedSize = localStorage.getItem("anchor-bubble-size");
   if (savedSize) bubbleSizeInput.value = savedSize;
+  if (bubbleSizeValue) bubbleSizeValue.textContent = bubbleSizeInput.value + "dp";
+  bubbleSizeInput.addEventListener("input", () => {
+    if (bubbleSizeValue) bubbleSizeValue.textContent = bubbleSizeInput.value + "dp";
+  });
   bubbleSizeInput.addEventListener("change", () => {
     const dp = parseInt(bubbleSizeInput.value, 10);
     localStorage.setItem("anchor-bubble-size", String(dp));
@@ -261,9 +263,14 @@ updateChizukButton();
 
 // Widget appearance (color + opacity) — applies to all Anchor widgets.
 const widgetColorPicker = document.getElementById("widget-color-picker");
+const widgetColorHex = document.getElementById("widget-color-hex");
 if (widgetColorPicker) {
   const savedColor = localStorage.getItem("anchor-widget-color");
   if (savedColor) widgetColorPicker.value = savedColor;
+  if (widgetColorHex) widgetColorHex.textContent = widgetColorPicker.value.toUpperCase();
+  widgetColorPicker.addEventListener("input", () => {
+    if (widgetColorHex) widgetColorHex.textContent = widgetColorPicker.value.toUpperCase();
+  });
   // "change" fires once the picker closes, not on every drag frame inside it.
   widgetColorPicker.addEventListener("change", () => {
     const color = widgetColorPicker.value;
@@ -277,9 +284,14 @@ if (widgetColorPicker) {
 }
 
 const widgetTextColorPicker = document.getElementById("widget-text-color-picker");
+const widgetTextColorHex = document.getElementById("widget-text-color-hex");
 if (widgetTextColorPicker) {
   const savedTextColor = localStorage.getItem("anchor-widget-text-color");
   if (savedTextColor) widgetTextColorPicker.value = savedTextColor;
+  if (widgetTextColorHex) widgetTextColorHex.textContent = widgetTextColorPicker.value.toUpperCase();
+  widgetTextColorPicker.addEventListener("input", () => {
+    if (widgetTextColorHex) widgetTextColorHex.textContent = widgetTextColorPicker.value.toUpperCase();
+  });
   widgetTextColorPicker.addEventListener("change", () => {
     const color = widgetTextColorPicker.value;
     localStorage.setItem("anchor-widget-text-color", color);
@@ -292,9 +304,14 @@ if (widgetTextColorPicker) {
 }
 
 const widgetOpacityInput = document.getElementById("widget-opacity");
+const widgetOpacityValue = document.getElementById("widget-opacity-value");
 if (widgetOpacityInput) {
   const savedOpacity = localStorage.getItem("anchor-widget-opacity");
   if (savedOpacity) widgetOpacityInput.value = savedOpacity;
+  if (widgetOpacityValue) widgetOpacityValue.textContent = widgetOpacityInput.value + "%";
+  widgetOpacityInput.addEventListener("input", () => {
+    if (widgetOpacityValue) widgetOpacityValue.textContent = widgetOpacityInput.value + "%";
+  });
   // "change" (fires on release), not "input" (fires continuously while
   // dragging) — avoids flooding the native bridge and widget redraws.
   widgetOpacityInput.addEventListener("change", () => {
@@ -309,35 +326,27 @@ if (widgetOpacityInput) {
   });
 }
 
-// Home screen mode: quote | image (local file)
-const HOME_MODE_KEY = "anchor-home-mode";
+// Home screen image (local file)
 const HOME_IMAGE_KEY = "anchor-home-image"; // data URL stored locally
 
 function applyHomeMode() {
-  const mode = localStorage.getItem(HOME_MODE_KEY) || "quote";
-  const quoteCard = document.getElementById("quote-card");
   const imageCard = document.getElementById("image-card");
   const img = document.getElementById("home-image");
   const dataUrl = localStorage.getItem(HOME_IMAGE_KEY) || "";
 
-  if (mode === "image" && dataUrl) {
-    if (quoteCard) quoteCard.hidden = true;
+  if (dataUrl) {
     if (imageCard) imageCard.hidden = false;
     if (img) img.src = dataUrl;
-  } else {
-    if (quoteCard) quoteCard.hidden = false;
-    if (imageCard) imageCard.hidden = true;
+  } else if (imageCard) {
+    imageCard.hidden = true;
   }
 }
 
 function loadHomeUI() {
-  const mode = localStorage.getItem(HOME_MODE_KEY) || "quote";
-  const input = document.querySelector(`input[name="home-mode"][value="${mode}"]`);
-  if (input) input.checked = true;
   const status = document.getElementById("home-status");
   if (status) {
     const hasImg = !!localStorage.getItem(HOME_IMAGE_KEY);
-    status.textContent = "Current: " + mode + (hasImg ? " (image saved)" : " (no image yet)");
+    status.textContent = hasImg ? "Image saved" : "No image saved yet";
   }
   applyHomeMode();
 }
@@ -376,24 +385,17 @@ function resizeImageDataUrl(dataUrl, maxW = 1200, quality = 0.7) {
 const saveHomeBtn = document.getElementById("save-home-btn");
 if (saveHomeBtn) {
   saveHomeBtn.addEventListener("click", async () => {
-    const selected = document.querySelector('input[name="home-mode"]:checked');
-    const mode = selected ? selected.value : "quote";
-    localStorage.setItem(HOME_MODE_KEY, mode);
-
     const fileInput = document.getElementById("home-image-file");
-    if (mode === "image" && fileInput && fileInput.files && fileInput.files[0]) {
-      try {
-        const raw = await fileToDataUrl(fileInput.files[0]);
-        const resized = await resizeImageDataUrl(raw);
-        localStorage.setItem(HOME_IMAGE_KEY, resized);
-      } catch (e) {
-        alert("Could not save image");
-        return;
-      }
-    }
-
-    if (mode === "image" && !localStorage.getItem(HOME_IMAGE_KEY)) {
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
       alert("Choose an image file first");
+      return;
+    }
+    try {
+      const raw = await fileToDataUrl(fileInput.files[0]);
+      const resized = await resizeImageDataUrl(raw);
+      localStorage.setItem(HOME_IMAGE_KEY, resized);
+    } catch (e) {
+      alert("Could not save image");
       return;
     }
 
@@ -413,7 +415,7 @@ const BACKUP_KEYS = [
   "anchor-bubble-color", "anchor-bubble-opacity", "anchor-bubble-size",
   "anchor-bubble-corner", "anchor-bubble-action",
   "anchor-widget-color", "anchor-widget-text-color", "anchor-widget-opacity",
-  "anchor-home-mode", "anchor-home-image"
+  "anchor-home-image"
 ];
 
 const exportBackupBtn = document.getElementById("export-backup-btn");
@@ -484,7 +486,7 @@ if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
       window.AnchorNative.setWidgetAlpha(Math.round(parseInt(data["anchor-widget-opacity"], 10) * 255 / 100));
     }
   }
-  if (data["anchor-home-mode"] !== undefined || data["anchor-home-image"] !== undefined) {
+  if (data["anchor-home-image"] !== undefined) {
     loadHomeUI();
   }
   loadModeUI();
@@ -493,4 +495,3 @@ if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
 });
 
 loadData();
-

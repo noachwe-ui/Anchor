@@ -17,20 +17,17 @@
       <button id="open-settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
     </header>
 
-    <section id="quote-card" class="quote-card">
-      <p id="quote-text">Loading...</p>
-      <p id="quote-source"></p>
-    </section>
-
     <section id="image-card" class="image-card" hidden>
       <img id="home-image" alt="Anchor" />
     </section>
 
     <div class="actions">
       <button id="clip-btn" class="btn primary">Vayimaen</button>
-      <button id="daily-dose-btn" class="btn secondary">Daily Dose</button>
-      <button id="hillel-btn" class="btn secondary">Rabbi Hillel Eisenberg</button>
-      <button id="chizuk-btn" class="btn secondary" style="display:none;">My Chizuk</button>
+      <div class="btn-grid">
+        <button id="daily-dose-btn" class="btn secondary">Daily Dose</button>
+        <button id="hillel-btn" class="btn secondary">Rabbi Hillel Eisenberg</button>
+      </div>
+      <button id="chizuk-btn" class="btn secondary is-hidden">My Chizuk</button>
     </div>
 
     <section class="personal">
@@ -45,15 +42,15 @@
     <header class="header-row">
       <button id="back-main-btn" class="icon-btn" aria-label="Back">←</button>
       <h1 class="settings-title">Settings</h1>
-      <div style="width:40px"></div>
+      <div class="header-spacer"></div>
     </header>
 
     <section class="settings-card">
       <h2>Floating Bubble</h2>
       <p class="hint">Choose how the support bubble behaves</p>
-      <div class="mode-list">
-        <label class="mode-option"><input type="radio" name="bubble-mode" value="off"><span>Off</span></label>
-        <label class="mode-option"><input type="radio" name="bubble-mode" value="always"><span>Always on</span></label>
+      <div class="pill-row">
+        <label class="pill-option"><input type="radio" name="bubble-mode" value="off"><span>Off</span></label>
+        <label class="pill-option"><input type="radio" name="bubble-mode" value="always"><span>Always on</span></label>
       </div>
       <button id="save-mode-btn" class="btn primary">Save Bubble Mode</button>
       <p id="mode-status" class="hint"></p>
@@ -67,46 +64,57 @@
       <div id="chizuk-list"></div>
     </section>
 
-    
     <section class="settings-card">
-      <h2>Home Screen</h2>
-      <p class="hint">Choose what appears at the top</p>
-      <div class="mode-list">
-        <label class="mode-option"><input type="radio" name="home-mode" value="quote"><span>Quote</span></label>
-        <label class="mode-option"><input type="radio" name="home-mode" value="image"><span>Image (top half)</span></label>
-      </div>
+      <h2>Home Screen Image</h2>
+      <p class="hint">Shown at the top of the main screen. Stored only on this phone.</p>
       <input id="home-image-file" type="file" accept="image/*" />
       <button id="save-home-btn" class="btn primary">Save Home Screen</button>
-      <p id="home-status" class="hint">Image is stored only on this phone</p>
+      <p id="home-status" class="hint"></p>
     </section>
 
     <section class="settings-card">
       <h2>Backup & Restore</h2>
       <p class="hint">Fully local — nothing leaves your device. Copy the text somewhere safe (Notes app, a text file); paste it back in below to restore.</p>
       <button type="button" id="export-backup-btn" class="btn secondary">Create Backup</button>
-      <textarea id="backup-output" readonly rows="6" style="width:100%;font-family:monospace;font-size:11px;margin-top:8px;"></textarea>
-      <label class="hint" for="backup-input" style="margin-top:12px;display:block;">Restore from backup</label>
-      <textarea id="backup-input" rows="6" style="width:100%;font-family:monospace;font-size:11px;" placeholder="Paste backup text here"></textarea>
-      <button type="button" id="import-backup-btn" class="btn secondary" style="margin-top:8px;">Restore Backup</button>
+      <textarea id="backup-output" class="textarea-mono" readonly rows="6"></textarea>
+      <label class="hint" for="backup-input" style="display:block;">Restore from backup</label>
+      <textarea id="backup-input" class="textarea-mono" rows="6" placeholder="Paste backup text here"></textarea>
+      <button type="button" id="import-backup-btn" class="btn secondary">Restore Backup</button>
       <p id="backup-status" class="hint"></p>
     </section>
 
     <section class="settings-card">
       <h2>Bubble Appearance</h2>
-      <input id="bubble-color-picker" type="color" value="#FF9F7A" style="width:100%;height:44px;border:none;padding:0;margin:10px 0;" />
-      <label class="hint" for="bubble-opacity">Opacity (0 = fully see-through)</label>
-      <input id="bubble-opacity" type="range" min="0" max="100" value="100" style="width:100%;" />
-      <label class="hint" for="bubble-size">Size</label>
-      <input id="bubble-size" type="range" min="24" max="120" value="56" style="width:100%;" />
-      <p class="hint" style="margin-top:12px;">Reappears in this corner every time</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="color-field">
+        <input id="bubble-color-picker" type="color" value="#FF9F7A" />
+        <div class="color-field-label">
+          <span class="label">Color</span>
+          <span class="hex" id="bubble-color-hex">#FF9F7A</span>
+        </div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label-row">
+          <span class="label">Opacity</span>
+          <span class="value" id="bubble-opacity-value">100%</span>
+        </div>
+        <input id="bubble-opacity" type="range" min="0" max="100" value="100" />
+      </div>
+      <div class="slider-row">
+        <div class="slider-label-row">
+          <span class="label">Size</span>
+          <span class="value" id="bubble-size-value">56dp</span>
+        </div>
+        <input id="bubble-size" type="range" min="24" max="120" value="56" />
+      </div>
+      <p class="hint">Reappears in this corner every time</p>
+      <div class="btn-grid">
         <button type="button" class="bubble-corner-btn btn secondary" data-corner="top_left">Top Left</button>
         <button type="button" class="bubble-corner-btn btn secondary" data-corner="top_right">Top Right</button>
         <button type="button" class="bubble-corner-btn btn secondary" data-corner="bottom_left">Bottom Left</button>
         <button type="button" class="bubble-corner-btn btn secondary" data-corner="bottom_right">Bottom Right</button>
       </div>
-      <p class="hint" style="margin-top:12px;">Tapping the bubble opens</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <p class="hint">Tapping the bubble opens</p>
+      <div class="btn-grid">
         <button type="button" class="bubble-action-btn btn secondary" data-action="vayimaen">Vayimaen</button>
         <button type="button" class="bubble-action-btn btn secondary" data-action="daily">Daily Dose</button>
         <button type="button" class="bubble-action-btn btn secondary" data-action="hillel">Rabbi Hillel Eisenberg</button>
@@ -118,11 +126,27 @@
     <section class="settings-card">
       <h2>Widget Appearance</h2>
       <p class="hint">Changes apply to all Anchor widgets on your home screen</p>
-      <input id="widget-color-picker" type="color" value="#FF9F7A" style="width:100%;height:44px;border:none;padding:0;margin:10px 0;" />
-      <label class="hint" for="widget-text-color-picker">Text color</label>
-      <input id="widget-text-color-picker" type="color" value="#FFFFFF" style="width:100%;height:44px;border:none;padding:0;margin:10px 0;" />
-      <label class="hint" for="widget-opacity">Opacity (0 = fully see-through)</label>
-      <input id="widget-opacity" type="range" min="0" max="100" value="100" style="width:100%;" />
+      <div class="color-field">
+        <input id="widget-color-picker" type="color" value="#FF9F7A" />
+        <div class="color-field-label">
+          <span class="label">Background</span>
+          <span class="hex" id="widget-color-hex">#FF9F7A</span>
+        </div>
+      </div>
+      <div class="color-field">
+        <input id="widget-text-color-picker" type="color" value="#FFFFFF" />
+        <div class="color-field-label">
+          <span class="label">Text color</span>
+          <span class="hex" id="widget-text-color-hex">#FFFFFF</span>
+        </div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label-row">
+          <span class="label">Opacity</span>
+          <span class="value" id="widget-opacity-value">100%</span>
+        </div>
+        <input id="widget-opacity" type="range" min="0" max="100" value="100" />
+      </div>
       <p id="widget-appearance-status" class="hint"></p>
     </section>
 
@@ -130,7 +154,7 @@
       <h2>Widgets</h2>
       <p class="hint">
         Add widgets from your home screen:<br>
-        • <b>Anchor</b> — quote card + Vayimaen<br>
+        • <b>Anchor</b> — home screen + Vayimaen<br>
         • <b>Anchor Shortcut</b> — round button you configure
       </p>
       <p class="hint">Open Anchor once after installing so clip links are ready for widgets.</p>

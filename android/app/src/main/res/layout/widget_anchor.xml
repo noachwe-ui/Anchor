@@ -38,16 +38,16 @@
             android:ellipsize="end" />
 
         <TextView
-            android:id="@+id/widget_cycle_btn"
+            android:id="@+id/widget_settings_btn"
             android:layout_width="42dp"
             android:layout_height="42dp"
             android:layout_marginStart="8dp"
             android:gravity="center"
-            android:text="&#8635;"
-            android:textSize="20sp"
+            android:text="&#9881;"
+            android:textSize="18sp"
             android:textColor="#5A5A5A"
             android:background="@drawable/widget_cycle_circle_bg"
-            android:contentDescription="Switch widget action" />
+            android:contentDescription="Widget settings" />
 
     </LinearLayout>
 </FrameLayout>

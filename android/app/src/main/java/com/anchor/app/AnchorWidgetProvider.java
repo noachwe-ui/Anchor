@@ -21,7 +21,6 @@ import java.util.Random;
 
 public class AnchorWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_CLICK = "com.anchor.app.WIDGET_CLICK";
-    public static final String ACTION_CYCLE = "com.anchor.app.WIDGET_CYCLE";
     public static final String PREFS = "anchor_widget_prefs";
     public static final String KEY_BG = "bg_color";
     public static final String KEY_BG_ALPHA = "bg_alpha"; // 0-255, default fully opaque
@@ -33,11 +32,6 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
     // Same key prefix AnchorWidgetConfigureActivity already defines —
     // referencing it here instead of a second copy of the literal string.
     private static final String KEY_ACTION_PREFIX = AnchorWidgetConfigureActivity.KEY_ACTION_PREFIX;
-
-    // Order the cycle button steps through. Same four actions the
-    // configure screen already offered — cycling just means you no
-    // longer have to delete and re-add the widget to change this.
-    private static final String[] CYCLE_ORDER = { "vayimaen", "daily", "hillel", "open_app" };
 
     private static final String[] MESSAGES = {
         "Take a breath. You're doing great.",
@@ -67,11 +61,6 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID);
         if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return;
-
-        if (ACTION_CYCLE.equals(act)) {
-            cycleAction(context, id);
-            return;
-        }
 
         if (!ACTION_CLICK.equals(act)) return;
 
@@ -110,18 +99,6 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
         } catch (Exception e) {
             Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void cycleAction(Context context, int id) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        String current = prefs.getString(KEY_ACTION_PREFIX + id, "vayimaen");
-        int idx = 0;
-        for (int i = 0; i < CYCLE_ORDER.length; i++) {
-            if (CYCLE_ORDER[i].equals(current)) { idx = i; break; }
-        }
-        String next = CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
-        prefs.edit().putString(KEY_ACTION_PREFIX + id, next).apply();
-        updateWidget(context, AppWidgetManager.getInstance(context), id);
     }
 
     static List<String> loadList(Context context, String prefKey, String assetPath) {
@@ -196,15 +173,19 @@ public class AnchorWidgetProvider extends AppWidgetProvider {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_row, piClick);
 
-        // Cycle button: separate tap target, switches the action in place.
-        Intent cycle = new Intent(context, AnchorWidgetProvider.class);
-        cycle.setAction(ACTION_CYCLE);
-        cycle.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        // Settings button: separate tap target, reopens the same picker
+        // used at add-time — scales to more categories better than an
+        // in-place cycle button would as more speakers get added.
+        Intent settings = new Intent(context, AnchorWidgetConfigureActivity.class);
+        settings.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        // FLAG_ACTIVITY_NEW_TASK is required launching an Activity from a
+        // non-Activity context (a widget's RemoteViews click).
+        settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         // Distinct requestCode (id + 2000) so this PendingIntent doesn't
         // collide with piClick's (id) or MainActivity's (id + 1000).
-        PendingIntent piCycle = PendingIntent.getBroadcast(context, id + 2000, cycle,
+        PendingIntent piSettings = PendingIntent.getActivity(context, id + 2000, settings,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_cycle_btn, piCycle);
+        views.setOnClickPendingIntent(R.id.widget_settings_btn, piSettings);
 
         manager.updateAppWidget(id, views);
     }

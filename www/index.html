@@ -15,19 +15,22 @@
     .btn-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: 10px;
       max-width: 500px;
-      margin: 20px auto;
+      margin: 16px auto;
     }
     .feed-btn {
-      padding: 14px;
-      border-radius: 10px;
+      padding: 12px;
+      border-radius: 8px;
       border: none;
-      background: #1e88e5;
+      background: #333;
       color: #fff;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
+    }
+    .feed-btn:active {
+      background: #1e88e5;
     }
     #video-modal {
       display: none;
@@ -53,22 +56,25 @@
       border-radius: 8px;
       font-weight: bold;
       font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <div style="text-align:center;">
+  <div style="text-align:center; max-width:600px; margin:0 auto;">
     <h2>Anchor Feeds</h2>
+    
     <div class="btn-grid">
       <button class="feed-btn" onclick="loadSpeakerFeed('rdavidashear.json')">R' David Ashear</button>
       <button class="feed-btn" onclick="loadSpeakerFeed('rjoeyhaber.json')">R' Joey Haber</button>
       <button class="feed-btn" onclick="loadSpeakerFeed('ryehudamandel.json')">R' Yehuda Mandel</button>
     </div>
+
     <div id="feed-container" style="margin-top:20px;"></div>
   </div>
 
-  <!-- In-App Video Modal -->
+  <!-- In-App Modal Player -->
   <div id="video-modal">
     <button class="close-btn" onclick="closeVideoModal()">✕ Close</button>
     <div style="width: 90%; max-width: 600px; text-align: center;">

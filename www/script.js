@@ -1,27 +1,35 @@
 let urls = [];
 let dailyDose = [];
 let hillelLinks = [];
+let davidAshearLinks = [];
+let joeyHaberLinks = [];
+let yehudaMandelLinks = [];
 
 const MODE_KEY = "anchor-bubble-mode";
 
 async function loadData() {
-  // Local-only: read the JSON files bundled inside the app. No network calls.
   try {
-    const [uRes, dRes, hRes] = await Promise.all([
+    const [uRes, dRes, hRes, daRes, jhRes, ymRes] = await Promise.all([
       fetch("urls.json"),
       fetch("daily_dose.json"),
-      fetch("hillel_eisenberg.json")
+      fetch("hillel_eisenberg.json"),
+      fetch("rdavidashear.json"),
+      fetch("rjoeyhaber.json"),
+      fetch("ryehudamandel.json")
     ]);
     if (uRes.ok) urls = await uRes.json();
     if (dRes.ok) dailyDose = await dRes.json();
     if (hRes.ok) hillelLinks = await hRes.json();
+    if (daRes.ok) davidAshearLinks = await daRes.json();
+    if (jhRes.ok) joeyHaberLinks = await jhRes.json();
+    if (ymRes.ok) yehudaMandelLinks = await ymRes.json();
   } catch (err) {}
 }
 
 const dailyBtn = document.getElementById("daily-dose-btn");
 if (dailyBtn) dailyBtn.addEventListener("click", () => {
   if (!dailyDose.length) {
-    alert("No Daily Dose links yet. Add them in daily_dose.json");
+    alert("No Daily Dose links yet.");
     return;
   }
   window.open(dailyDose[Math.floor(Math.random() * dailyDose.length)], "_blank");
@@ -30,10 +38,37 @@ if (dailyBtn) dailyBtn.addEventListener("click", () => {
 const hillelBtn = document.getElementById("hillel-btn");
 if (hillelBtn) hillelBtn.addEventListener("click", () => {
   if (!hillelLinks.length) {
-    alert("No Rabbi Hillel Eisenberg links yet. Add them in hillel_eisenberg.json");
+    alert("No Rabbi Hillel Eisenberg links yet.");
     return;
   }
   window.open(hillelLinks[Math.floor(Math.random() * hillelLinks.length)], "_blank");
+});
+
+const daBtn = document.getElementById("david-ashear-btn");
+if (daBtn) daBtn.addEventListener("click", () => {
+  if (!davidAshearLinks.length) {
+    alert("No Rabbi David Ashear links yet.");
+    return;
+  }
+  window.open(davidAshearLinks[Math.floor(Math.random() * davidAshearLinks.length)], "_blank");
+});
+
+const jhBtn = document.getElementById("joey-haber-btn");
+if (jhBtn) jhBtn.addEventListener("click", () => {
+  if (!joeyHaberLinks.length) {
+    alert("No Rabbi Joey Haber links yet.");
+    return;
+  }
+  window.open(joeyHaberLinks[Math.floor(Math.random() * joeyHaberLinks.length)], "_blank");
+});
+
+const ymBtn = document.getElementById("yehuda-mandel-btn");
+if (ymBtn) ymBtn.addEventListener("click", () => {
+  if (!yehudaMandelLinks.length) {
+    alert("No Rabbi Yehuda Mandel links yet.");
+    return;
+  }
+  window.open(yehudaMandelLinks[Math.floor(Math.random() * yehudaMandelLinks.length)], "_blank");
 });
 
 const clipBtn = document.getElementById("clip-btn");
@@ -46,7 +81,6 @@ if (clipBtn) clipBtn.addEventListener("click", () => {
   window.open(link, "_blank");
 });
 
-// Notes
 const noteEl = document.getElementById("personal-note");
 if (noteEl) noteEl.value = localStorage.getItem("anchor-note") || "";
 const saveNoteBtn = document.getElementById("save-note-btn");
@@ -55,7 +89,6 @@ if (saveNoteBtn) saveNoteBtn.addEventListener("click", () => {
   alert("Note saved on this device.");
 });
 
-// Screen navigation
 const mainScreen = document.getElementById("screen-main");
 const settingsScreen = document.getElementById("screen-settings");
 
@@ -71,7 +104,6 @@ if (backMainBtn) backMainBtn.addEventListener("click", () => {
   if (mainScreen) mainScreen.hidden = false;
 });
 
-// Bubble mode
 function getMode() {
   return localStorage.getItem(MODE_KEY) || "always";
 }
@@ -89,8 +121,6 @@ if (saveModeBtn) saveModeBtn.addEventListener("click", () => {
   const selected = document.querySelector('input[name="bubble-mode"]:checked');
   if (!selected) return;
   localStorage.setItem(MODE_KEY, selected.value);
-  // Push to native immediately instead of waiting for it to next poll
-  // localStorage — that delay was making this menu look like it did nothing.
   if (window.AnchorNative && window.AnchorNative.setBubbleMode) {
     window.AnchorNative.setBubbleMode(selected.value);
   }
@@ -99,7 +129,6 @@ if (saveModeBtn) saveModeBtn.addEventListener("click", () => {
   alert("Bubble mode saved: " + selected.value);
 });
 
-// Chizuk links
 function getChizukLinks() {
   try { return JSON.parse(localStorage.getItem("anchor-chizuk-links") || "[]"); }
   catch { return []; }
@@ -172,7 +201,6 @@ if (chizukBtn) chizukBtn.addEventListener("click", () => {
   window.open(links[Math.floor(Math.random() * links.length)], "_blank");
 });
 
-// Bubble appearance (color + opacity + reappear corner).
 const bubbleColorPicker = document.getElementById("bubble-color-picker");
 const bubbleColorHex = document.getElementById("bubble-color-hex");
 if (bubbleColorPicker) {
@@ -188,8 +216,6 @@ if (bubbleColorPicker) {
     if (window.AnchorNative && window.AnchorNative.setBubbleColor) {
       window.AnchorNative.setBubbleColor(color);
     }
-    const status = document.getElementById("bubble-appearance-status");
-    if (status) status.textContent = "Bubble color updated";
   });
 }
 
@@ -208,8 +234,6 @@ if (bubbleOpacityInput) {
     if (window.AnchorNative && window.AnchorNative.setBubbleAlpha) {
       window.AnchorNative.setBubbleAlpha(Math.round(pct * 255 / 100));
     }
-    const status = document.getElementById("bubble-appearance-status");
-    if (status) status.textContent = "Opacity: " + pct + "%";
   });
 }
 
@@ -228,8 +252,6 @@ if (bubbleSizeInput) {
     if (window.AnchorNative && window.AnchorNative.setBubbleSize) {
       window.AnchorNative.setBubbleSize(dp);
     }
-    const status = document.getElementById("bubble-appearance-status");
-    if (status) status.textContent = "Bubble size: " + dp + "dp";
   });
 }
 
@@ -240,8 +262,6 @@ document.querySelectorAll(".bubble-corner-btn").forEach((btn) => {
     if (window.AnchorNative && window.AnchorNative.setBubbleCorner) {
       window.AnchorNative.setBubbleCorner(corner);
     }
-    const status = document.getElementById("bubble-appearance-status");
-    if (status) status.textContent = "Will reappear: " + corner.replace("_", " ");
   });
 });
 
@@ -252,8 +272,6 @@ document.querySelectorAll(".bubble-action-btn").forEach((btn) => {
     if (window.AnchorNative && window.AnchorNative.setBubbleAction) {
       window.AnchorNative.setBubbleAction(action);
     }
-    const status = document.getElementById("bubble-appearance-status");
-    if (status) status.textContent = "Bubble now opens: " + btn.textContent;
   });
 });
 
@@ -261,7 +279,6 @@ loadModeUI();
 renderChizukList();
 updateChizukButton();
 
-// Widget appearance (color + opacity) — applies to all Anchor widgets.
 const widgetColorPicker = document.getElementById("widget-color-picker");
 const widgetColorHex = document.getElementById("widget-color-hex");
 if (widgetColorPicker) {
@@ -271,15 +288,12 @@ if (widgetColorPicker) {
   widgetColorPicker.addEventListener("input", () => {
     if (widgetColorHex) widgetColorHex.textContent = widgetColorPicker.value.toUpperCase();
   });
-  // "change" fires once the picker closes, not on every drag frame inside it.
   widgetColorPicker.addEventListener("change", () => {
     const color = widgetColorPicker.value;
     localStorage.setItem("anchor-widget-color", color);
     if (window.AnchorNative && window.AnchorNative.setWidgetColor) {
       window.AnchorNative.setWidgetColor(color);
     }
-    const status = document.getElementById("widget-appearance-status");
-    if (status) status.textContent = "Widget color updated";
   });
 }
 
@@ -298,8 +312,6 @@ if (widgetTextColorPicker) {
     if (window.AnchorNative && window.AnchorNative.setWidgetTextColor) {
       window.AnchorNative.setWidgetTextColor(color);
     }
-    const status = document.getElementById("widget-appearance-status");
-    if (status) status.textContent = "Text color updated";
   });
 }
 
@@ -312,22 +324,16 @@ if (widgetOpacityInput) {
   widgetOpacityInput.addEventListener("input", () => {
     if (widgetOpacityValue) widgetOpacityValue.textContent = widgetOpacityInput.value + "%";
   });
-  // "change" (fires on release), not "input" (fires continuously while
-  // dragging) — avoids flooding the native bridge and widget redraws.
   widgetOpacityInput.addEventListener("change", () => {
     const pct = parseInt(widgetOpacityInput.value, 10);
     localStorage.setItem("anchor-widget-opacity", String(pct));
     if (window.AnchorNative && window.AnchorNative.setWidgetAlpha) {
-      // Convert 0-100% to a 0-255 alpha byte for the native side.
       window.AnchorNative.setWidgetAlpha(Math.round(pct * 255 / 100));
     }
-    const status = document.getElementById("widget-appearance-status");
-    if (status) status.textContent = "Opacity: " + pct + "%";
   });
 }
 
-// Home screen image (local file)
-const HOME_IMAGE_KEY = "anchor-home-image"; // data URL stored locally
+const HOME_IMAGE_KEY = "anchor-home-image";
 
 function applyHomeMode() {
   const imageCard = document.getElementById("image-card");
@@ -343,11 +349,6 @@ function applyHomeMode() {
 }
 
 function loadHomeUI() {
-  const status = document.getElementById("home-status");
-  if (status) {
-    const hasImg = !!localStorage.getItem(HOME_IMAGE_KEY);
-    status.textContent = hasImg ? "Image saved" : "No image saved yet";
-  }
   applyHomeMode();
 }
 
@@ -360,7 +361,6 @@ function fileToDataUrl(file) {
   });
 }
 
-// Resize large photos so localStorage can hold them
 function resizeImageDataUrl(dataUrl, maxW = 1200, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -398,7 +398,6 @@ if (saveHomeBtn) {
       alert("Could not save image");
       return;
     }
-
     loadHomeUI();
     alert("Home screen saved");
   });
@@ -406,10 +405,6 @@ if (saveHomeBtn) {
 
 loadHomeUI();
 
-// Backup & Restore — fully local: reads/writes the same localStorage keys
-// every other control here already uses, and re-applies each one through
-// the exact same functions/bridge calls as when the user changes a
-// setting manually. Nothing is written to disk or sent anywhere.
 const BACKUP_KEYS = [
   "anchor-note", "anchor-chizuk-links", "anchor-bubble-mode",
   "anchor-bubble-color", "anchor-bubble-opacity", "anchor-bubble-size",
@@ -443,7 +438,7 @@ if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
   }
   const raw = window.AnchorNative.loadBackupFile();
   if (!raw) {
-    if (status) status.textContent = "No backup found yet — tap Backup first.";
+    if (status) status.textContent = "No backup found yet.";
     return;
   }
   let data;
@@ -454,59 +449,6 @@ if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
     return;
   }
   Object.keys(data).forEach((k) => localStorage.setItem(k, data[k]));
-
-  if (data["anchor-note"] !== undefined && noteEl) noteEl.value = data["anchor-note"];
-  if (data["anchor-chizuk-links"] !== undefined) { renderChizukList(); updateChizukButton(); }
-  if (data["anchor-bubble-mode"] !== undefined && window.AnchorNative && window.AnchorNative.setBubbleMode) {
-    window.AnchorNative.setBubbleMode(data["anchor-bubble-mode"]);
-  }
-  if (data["anchor-bubble-color"] !== undefined) {
-    if (bubbleColorPicker) bubbleColorPicker.value = data["anchor-bubble-color"];
-    if (bubbleColorHex) bubbleColorHex.textContent = data["anchor-bubble-color"].toUpperCase();
-    if (window.AnchorNative && window.AnchorNative.setBubbleColor) window.AnchorNative.setBubbleColor(data["anchor-bubble-color"]);
-  }
-  if (data["anchor-bubble-opacity"] !== undefined) {
-    if (bubbleOpacityInput) bubbleOpacityInput.value = data["anchor-bubble-opacity"];
-    if (bubbleOpacityValue) bubbleOpacityValue.textContent = data["anchor-bubble-opacity"] + "%";
-    if (window.AnchorNative && window.AnchorNative.setBubbleAlpha) {
-      window.AnchorNative.setBubbleAlpha(Math.round(parseInt(data["anchor-bubble-opacity"], 10) * 255 / 100));
-    }
-  }
-  if (data["anchor-bubble-size"] !== undefined) {
-    if (bubbleSizeInput) bubbleSizeInput.value = data["anchor-bubble-size"];
-    if (bubbleSizeValue) bubbleSizeValue.textContent = data["anchor-bubble-size"] + "dp";
-    if (window.AnchorNative && window.AnchorNative.setBubbleSize) {
-      window.AnchorNative.setBubbleSize(parseInt(data["anchor-bubble-size"], 10));
-    }
-  }
-  if (data["anchor-bubble-corner"] !== undefined && window.AnchorNative && window.AnchorNative.setBubbleCorner) {
-    window.AnchorNative.setBubbleCorner(data["anchor-bubble-corner"]);
-  }
-  if (data["anchor-bubble-action"] !== undefined && window.AnchorNative && window.AnchorNative.setBubbleAction) {
-    window.AnchorNative.setBubbleAction(data["anchor-bubble-action"]);
-  }
-  if (data["anchor-widget-color"] !== undefined) {
-    if (widgetColorPicker) widgetColorPicker.value = data["anchor-widget-color"];
-    if (widgetColorHex) widgetColorHex.textContent = data["anchor-widget-color"].toUpperCase();
-    if (window.AnchorNative && window.AnchorNative.setWidgetColor) window.AnchorNative.setWidgetColor(data["anchor-widget-color"]);
-  }
-  if (data["anchor-widget-text-color"] !== undefined) {
-    if (widgetTextColorPicker) widgetTextColorPicker.value = data["anchor-widget-text-color"];
-    if (widgetTextColorHex) widgetTextColorHex.textContent = data["anchor-widget-text-color"].toUpperCase();
-    if (window.AnchorNative && window.AnchorNative.setWidgetTextColor) window.AnchorNative.setWidgetTextColor(data["anchor-widget-text-color"]);
-  }
-  if (data["anchor-widget-opacity"] !== undefined) {
-    if (widgetOpacityInput) widgetOpacityInput.value = data["anchor-widget-opacity"];
-    if (widgetOpacityValue) widgetOpacityValue.textContent = data["anchor-widget-opacity"] + "%";
-    if (window.AnchorNative && window.AnchorNative.setWidgetAlpha) {
-      window.AnchorNative.setWidgetAlpha(Math.round(parseInt(data["anchor-widget-opacity"], 10) * 255 / 100));
-    }
-  }
-  if (data["anchor-home-image"] !== undefined) {
-    loadHomeUI();
-  }
-  loadModeUI();
-
   if (status) status.textContent = "Backup restored.";
 });
 

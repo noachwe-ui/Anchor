@@ -24,31 +24,29 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import java.util.Arrays;
 import java.util.List;
 
 public class FloatingBubbleService extends Service {
     public static final String ACTION_SHOW = "com.anchor.app.SHOW_BUBBLE";
     public static final String ACTION_HIDE = "com.anchor.app.HIDE_BUBBLE";
     public static final String ACTION_APPLY_MODE = "com.anchor.app.APPLY_MODE";
-    // Sent by MainActivity itself on resume/pause. These are honored
-    // regardless of the current bubble mode — the bubble should never
-    // float over Anchor's own screens, and reopening the app should
-    // always clear a prior manual "drag to remove" dismissal.
     public static final String ACTION_APP_FOREGROUND = "com.anchor.app.APP_FOREGROUND";
     public static final String ACTION_APP_BACKGROUND = "com.anchor.app.APP_BACKGROUND";
     public static final String ACTION_APPLY_BUBBLE_APPEARANCE = "com.anchor.app.APPLY_BUBBLE_APPEARANCE";
-    // Prefs keys — read/written here and from MainActivity's JS bridge,
-    // stored in the same file MainActivity already uses for KEY_MODE.
     public static final String KEY_BUBBLE_COLOR = "bubble_color";
     public static final String KEY_BUBBLE_ALPHA = "bubble_alpha";
-    public static final String KEY_BUBBLE_CORNER = "bubble_corner"; // top_left/top_right/bottom_left/bottom_right
-    public static final String KEY_BUBBLE_ACTION = "bubble_action"; // vayimaen/daily/hillel/open_app
+    public static final String KEY_BUBBLE_CORNER = "bubble_corner";
+    public static final String KEY_BUBBLE_ACTION = "bubble_action";
     public static final String KEY_BUBBLE_SIZE_DP = "bubble_size_dp";
     private static final String TAG = "FloatingBubble";
 
-    // "targets" mode polls UsageStatsManager on this cadence when the
-    // Accessibility path isn't being used. Widened from 500ms/2500ms to
-    // cut battery/CPU churn from a tight polling loop.
+    private static final List<String> TARGETS = Arrays.asList(
+        "com.instagram.android",
+        "com.whatsapp",
+        "com.twitter.android"
+    );
+
     private static final long POLL_INTERVAL_MS = 1500;
     private static final long POLL_WINDOW_MS = 4000;
 
@@ -107,9 +105,6 @@ public class FloatingBubbleService extends Service {
                     hideBubble();
                 }
             } else if (ACTION_APP_FOREGROUND.equals(action)) {
-                // Anchor's own app just came to the front: never float the
-                // bubble over our own screens, and treat this as a fresh
-                // start — clear any earlier manual "drag to remove".
                 appInForeground = true;
                 userHidden = false;
                 hideBubble();
@@ -136,7 +131,6 @@ public class FloatingBubbleService extends Service {
                 handler.post(targetsRunnable);
                 break;
             case "accessibility":
-                // wait for Accessibility SHOW/HIDE
                 break;
             default:
                 if (!userHidden) showBubble();
@@ -151,7 +145,7 @@ public class FloatingBubbleService extends Service {
                 return;
             }
             String fg = getForegroundApp();
-            boolean onTarget = fg != null && Constants.TARGETS.contains(fg);
+            boolean onTarget = fg != null && TARGETS.contains(fg);
             if (onTarget) {
                 missCount = 0;
                 if (!userHidden) showBubble();
@@ -182,7 +176,7 @@ public class FloatingBubbleService extends Service {
                     if (pkg.contains("systemui") || pkg.contains("inputmethod")
                         || pkg.contains("keyboard") || pkg.contains("launcher")) continue;
                     if (t > bestAnyTime) { bestAnyTime = t; bestAny = pkg; }
-                    if (Constants.TARGETS.contains(pkg) && t > bestTargetTime) {
+                    if (TARGETS.contains(pkg) && t > bestTargetTime) {
                         bestTargetTime = t; bestTarget = pkg;
                     }
                 }
@@ -199,7 +193,7 @@ public class FloatingBubbleService extends Service {
                         last = pkg;
                 }
             }
-            if (last != null && Constants.TARGETS.contains(last)) return last;
+            if (last != null && TARGETS.contains(last)) return last;
             return bestAny != null ? bestAny : last;
         } catch (Exception e) {
             Log.w(TAG, "getForegroundApp failed", e);
@@ -223,9 +217,6 @@ public class FloatingBubbleService extends Service {
             .setOngoing(true).build());
     }
 
-    // A plain custom View has no RemoteViews constraints, so unlike the
-    // widget, View.setAlpha() genuinely blends the whole bubble against
-    // whatever's behind it — real transparency, independent of the tint.
     private int bubbleSizePx() {
         int sizeDp = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE)
             .getInt(KEY_BUBBLE_SIZE_DP, 56);
@@ -246,10 +237,6 @@ public class FloatingBubbleService extends Service {
         } catch (Exception ignored) {}
         bubble.setAlpha(alpha / 255f);
 
-        // Resize the WINDOW itself (not just the icon) — the window now
-        // uses an exact pixel size instead of WRAP_CONTENT specifically so
-        // this works; WRAP_CONTENT would just re-measure to the drawable's
-        // own fixed intrinsic size regardless of any size preference.
         if (bubbleParams != null) {
             int sizePx = bubbleSizePx();
             bubbleParams.width = sizePx;
@@ -262,8 +249,6 @@ public class FloatingBubbleService extends Service {
         }
     }
 
-    // Same category vocabulary as the widget (vayimaen/daily/hillel/open_app),
-    // reusing AnchorWidgetProvider.loadList so the URL lists aren't duplicated.
     private void openBubbleAction() {
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         String action = prefs.getString(KEY_BUBBLE_ACTION, "open_app");
@@ -290,21 +275,15 @@ public class FloatingBubbleService extends Service {
         } catch (Exception ignored) {}
     }
 
-    // Called only when re-attaching from a fully hidden state (not during
-    // an active drag or while already showing) — that's what makes the
-    // bubble reappear in the same configured corner every time, while
-    // still letting a live drag move it freely in the meantime.
     private void resetBubblePosition() {
         if (bubbleParams == null || bubble == null) return;
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE);
         String corner = prefs.getString(KEY_BUBBLE_CORNER, "top_left");
-        // bubbleParams.width/height are now an exact pixel size (see
-        // bubbleSizePx()), so use them directly instead of measuring.
         int bw = bubbleParams.width;
         int bh = bubbleParams.height;
         int margin = 40;
         int topY = 200;
-        int bottomY = Math.max(topY, screenHeight - bh - margin - 150); // leave room for nav bar
+        int bottomY = Math.max(topY, screenHeight - bh - margin - 150);
         switch (corner) {
             case "top_right":
                 bubbleParams.x = Math.max(margin, screenWidth - bw - margin);
@@ -339,9 +318,6 @@ public class FloatingBubbleService extends Service {
             iv.setImageResource(R.drawable.ic_anchor_bubble);
             bubbleView = iv;
         } catch (Exception e) {
-            // A bad vector resource would otherwise crash onCreate() here
-            // and take the whole service down with no visible bubble and
-            // no crash dialog (it's a background service). Degrade instead.
             Log.e(TAG, "Failed to load anchor icon, falling back to text glyph", e);
             TextView tv = new TextView(this);
             tv.setText("⚓");
@@ -474,7 +450,7 @@ public class FloatingBubbleService extends Service {
     private void showBubble() {
         if (bubble == null || bubbleParams == null) return;
         if ("off".equals(mode)) return;
-        if (appInForeground) return; // never show over Anchor's own screens
+        if (appInForeground) return;
         try {
             bubble.setVisibility(View.VISIBLE);
             if (!bubble.isAttachedToWindow()) {
@@ -486,9 +462,6 @@ public class FloatingBubbleService extends Service {
             visible = true;
         } catch (Exception e) {
             Log.w(TAG, "showBubble failed, retrying once", e);
-            // The view may be in an inconsistent attached state — force a
-            // clean detach before retrying, rather than trusting whatever
-            // state we thought we were in.
             try {
                 if (bubble.isAttachedToWindow()) wm.removeViewImmediate(bubble);
             } catch (Exception ignored2) {}
@@ -515,9 +488,6 @@ public class FloatingBubbleService extends Service {
         } catch (Exception e) {
             Log.w(TAG, "removeView on bubble failed", e);
         }
-        // Always resync regardless of whether removeView above succeeded —
-        // this is what was getting stuck permanently true if removeView
-        // ever threw, silently blocking every future showBubble() call.
         visible = false;
     }
 

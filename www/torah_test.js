@@ -1,4 +1,3 @@
-// Extract Class ID from any TorahAnytime URL variation
 function extractClassId(url) {
   if (!url) return null;
   const str = String(url).trim();
@@ -6,7 +5,6 @@ function extractClassId(url) {
   return match ? match[1] : null;
 }
 
-// Fetch direct stream details from TorahAnytime API
 async function getDirectMediaSources(classId) {
   try {
     const res = await fetch(`https://api.torahanytime.com/lectures/${classId}`);
@@ -17,18 +15,13 @@ async function getDirectMediaSources(classId) {
       success: true,
       title: data.title || data.topic || "TorahAnytime Class",
       videoUrl: data.video_url || data.mp4_url || data.media_url || null,
-      audioUrl: data.audio_url || data.mp3_url || null,
-      youtubeId: data.youtube_id || null
+      audioUrl: data.audio_url || data.mp3_url || null
     };
   } catch (err) {
-    return {
-      success: false,
-      error: err.message
-    };
+    return { success: false, error: err.message };
   }
 }
 
-// Multi-tier playback engine with fallbacks
 async function playClassByUrlOrId(input) {
   const classId = extractClassId(input);
   if (!classId) {
@@ -36,36 +29,29 @@ async function playClassByUrlOrId(input) {
     return;
   }
 
-  console.log("Processing Class ID:", classId);
   const media = await getDirectMediaSources(classId);
+  const modal = document.getElementById("video-modal");
+  const player = document.getElementById("app-player");
+  const title = document.getElementById("video-title");
 
-  // Tier 1: Direct Video MP4
-  if (media.success && media.videoUrl) {
-    console.log("Playing primary video:", media.videoUrl);
-    window.open(media.videoUrl, "_blank");
-    return;
+  const streamUrl = (media.success && media.videoUrl) ? media.videoUrl :
+                    (media.success && media.audioUrl) ? media.audioUrl :
+                    `https://www.torahanytime.com/lectures/${classId}`;
+
+  if (title) title.innerText = media.title || "Playing Class";
+  if (player && modal) {
+    player.src = streamUrl;
+    modal.style.display = "flex";
+    player.play();
   }
-
-  // Tier 2: YouTube Mirror
-  if (media.success && media.youtubeId) {
-    const ytUrl = `https://www.youtube.com/watch?v=${media.youtubeId}`;
-    console.log("Video MP4 unavailable. Playing YouTube mirror:", ytUrl);
-    window.open(ytUrl, "_blank");
-    return;
-  }
-
-  // Tier 3: Audio Stream MP3
-  if (media.success && media.audioUrl) {
-    console.log("Video unavailable. Playing audio stream:", media.audioUrl);
-    window.open(media.audioUrl, "_blank");
-    return;
-  }
-
-  // Tier 4: Emergency Fallback to standard web URL
-  const fallbackWebUrl = `https://www.torahanytime.com/lectures/${classId}`;
-  console.warn("API/Streams failed. Opening original web link:", fallbackWebUrl);
-  window.open(fallbackWebUrl, "_blank");
 }
 
-// Test call (uncomment or run directly in console to test with Class ID 100000)
-// playClassByUrlOrId("https://www.torahanytime.com/lectures/100000");
+function closeVideoModal() {
+  const modal = document.getElementById("video-modal");
+  const player = document.getElementById("app-player");
+  if (player) {
+    player.pause();
+    player.src = "";
+  }
+  if (modal) modal.style.display = "none";
+}

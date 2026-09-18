@@ -1,33 +1,30 @@
 package com.anchor.app;
 
 import android.os.Bundle;
-import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import androidx.appcompat.app.AppCompatActivity;
+import com.getcapacitor.BridgeActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BridgeActivity {
     public static final String PREFS = "anchor_prefs";
     public static final String KEY_MODE = "bubble_mode";
 
-    private WebView webView;
-
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        webView = findViewById(R.id.webview);
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-
-        webView.setWebViewClient(new WebViewClient());
-        webView.setWebChromeClient(new WebChromeClient());
-
-        webView.loadUrl("file:///android_asset/www/index.html");
+        
+        // Configure the Capacitor WebView for inline media playback
+        try {
+            WebView webView = this.bridge.getWebView();
+            if (webView != null) {
+                WebSettings settings = webView.getSettings();
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                settings.setAllowFileAccess(true);
+                settings.setMediaPlaybackRequiresUserGesture(false);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

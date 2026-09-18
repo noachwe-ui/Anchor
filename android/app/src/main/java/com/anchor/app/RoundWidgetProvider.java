@@ -9,11 +9,6 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.widget.RemoteViews;
 import android.widget.Toast;
-import org.json.JSONArray;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -62,34 +57,9 @@ public class RoundWidgetProvider extends AppWidgetProvider {
     }
 
     private List<String> loadUrls(Context context) {
-        List<String> urls = new ArrayList<>();
-        try {
-            String json = context.getSharedPreferences(
-                AnchorWidgetProvider.PREFS, Context.MODE_PRIVATE)
-                .getString(AnchorWidgetProvider.KEY_URLS, "");
-            if (json != null && !json.isEmpty()) {
-                JSONArray arr = new JSONArray(json);
-                for (int i = 0; i < arr.length(); i++) {
-                    String u = arr.optString(i, "").trim();
-                    if (u.startsWith("http")) urls.add(u);
-                }
-            }
-        } catch (Exception ignored) {}
-        if (!urls.isEmpty()) return urls;
-        try {
-            InputStream is = context.getAssets().open("public/urls.json");
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) sb.append(line);
-            br.close();
-            JSONArray arr = new JSONArray(sb.toString());
-            for (int i = 0; i < arr.length(); i++) {
-                String u = arr.optString(i, "").trim();
-                if (u.startsWith("http")) urls.add(u);
-            }
-        } catch (Exception ignored) {}
-        return urls;
+        // Same list AnchorWidgetProvider's main pill uses for "Vayimaen" —
+        // reusing it here instead of a second copy of this loading logic.
+        return AnchorWidgetProvider.loadList(context, AnchorWidgetProvider.KEY_URLS, "public/urls.json");
     }
 
     static void updateWidget(Context context, AppWidgetManager manager, int id) {

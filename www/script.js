@@ -462,16 +462,19 @@ if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
   }
   if (data["anchor-bubble-color"] !== undefined) {
     if (bubbleColorPicker) bubbleColorPicker.value = data["anchor-bubble-color"];
+    if (bubbleColorHex) bubbleColorHex.textContent = data["anchor-bubble-color"].toUpperCase();
     if (window.AnchorNative && window.AnchorNative.setBubbleColor) window.AnchorNative.setBubbleColor(data["anchor-bubble-color"]);
   }
   if (data["anchor-bubble-opacity"] !== undefined) {
     if (bubbleOpacityInput) bubbleOpacityInput.value = data["anchor-bubble-opacity"];
+    if (bubbleOpacityValue) bubbleOpacityValue.textContent = data["anchor-bubble-opacity"] + "%";
     if (window.AnchorNative && window.AnchorNative.setBubbleAlpha) {
       window.AnchorNative.setBubbleAlpha(Math.round(parseInt(data["anchor-bubble-opacity"], 10) * 255 / 100));
     }
   }
   if (data["anchor-bubble-size"] !== undefined) {
     if (bubbleSizeInput) bubbleSizeInput.value = data["anchor-bubble-size"];
+    if (bubbleSizeValue) bubbleSizeValue.textContent = data["anchor-bubble-size"] + "dp";
     if (window.AnchorNative && window.AnchorNative.setBubbleSize) {
       window.AnchorNative.setBubbleSize(parseInt(data["anchor-bubble-size"], 10));
     }
@@ -484,14 +487,17 @@ if (importBackupBtn) importBackupBtn.addEventListener("click", () => {
   }
   if (data["anchor-widget-color"] !== undefined) {
     if (widgetColorPicker) widgetColorPicker.value = data["anchor-widget-color"];
+    if (widgetColorHex) widgetColorHex.textContent = data["anchor-widget-color"].toUpperCase();
     if (window.AnchorNative && window.AnchorNative.setWidgetColor) window.AnchorNative.setWidgetColor(data["anchor-widget-color"]);
   }
   if (data["anchor-widget-text-color"] !== undefined) {
     if (widgetTextColorPicker) widgetTextColorPicker.value = data["anchor-widget-text-color"];
+    if (widgetTextColorHex) widgetTextColorHex.textContent = data["anchor-widget-text-color"].toUpperCase();
     if (window.AnchorNative && window.AnchorNative.setWidgetTextColor) window.AnchorNative.setWidgetTextColor(data["anchor-widget-text-color"]);
   }
   if (data["anchor-widget-opacity"] !== undefined) {
     if (widgetOpacityInput) widgetOpacityInput.value = data["anchor-widget-opacity"];
+    if (widgetOpacityValue) widgetOpacityValue.textContent = data["anchor-widget-opacity"] + "%";
     if (window.AnchorNative && window.AnchorNative.setWidgetAlpha) {
       window.AnchorNative.setWidgetAlpha(Math.round(parseInt(data["anchor-widget-opacity"], 10) * 255 / 100));
     }

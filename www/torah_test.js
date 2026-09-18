@@ -5,44 +5,36 @@ function extractClassId(url) {
   return match ? match[1] : null;
 }
 
-async function getDirectMediaSources(classId) {
-  try {
-    const res = await fetch(`https://api.torahanytime.com/lectures/${classId}`);
-    if (!res.ok) throw new Error(`API status ${res.status}`);
-    const data = await res.json();
-
-    return {
-      success: true,
-      title: data.title || data.topic || "TorahAnytime Class",
-      videoUrl: data.video_url || data.mp4_url || data.media_url || null,
-      audioUrl: data.audio_url || data.mp3_url || null
-    };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-}
-
 async function playClassByUrlOrId(input) {
   const classId = extractClassId(input);
   if (!classId) {
-    alert("Could not find a valid Class ID in: " + input);
+    alert("Invalid Class ID or link");
     return;
   }
 
-  const media = await getDirectMediaSources(classId);
   const modal = document.getElementById("video-modal");
   const player = document.getElementById("app-player");
   const title = document.getElementById("video-title");
 
-  const streamUrl = (media.success && media.videoUrl) ? media.videoUrl :
-                    (media.success && media.audioUrl) ? media.audioUrl :
-                    `https://www.torahanytime.com/lectures/${classId}`;
+  // Direct media stream proxy URL (bypasses API CORS issues)
+  const proxyStreamUrl = `https://proxier.torahanytime.com/mp4/${classId}.mp4`;
 
-  if (title) title.innerText = media.title || "Playing Class";
+  if (title) title.innerText = "Class ID: " + classId;
+  
   if (player && modal) {
-    player.src = streamUrl;
     modal.style.display = "flex";
-    player.play();
+    player.src = proxyStreamUrl;
+    
+    // Fallback handler if MP4 fails to load
+    player.onerror = function() {
+      console.warn("Direct MP4 stream failed, falling back to audio...");
+      player.src = `https://proxier.torahanytime.com/mp3/${classId}.mp3`;
+      player.play().catch(e => Log.e("Audio play failed", e));
+    };
+
+    player.play().catch(err => {
+      console.warn("Autoplay blocked or failed:", err);
+    });
   }
 }
 
@@ -51,7 +43,8 @@ function closeVideoModal() {
   const player = document.getElementById("app-player");
   if (player) {
     player.pause();
-    player.src = "";
+    player.removeAttribute("src");
+    player.load();
   }
   if (modal) modal.style.display = "none";
 }

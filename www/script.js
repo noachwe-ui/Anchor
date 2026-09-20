@@ -1,18 +1,20 @@
 let urls = [];
 let dailyDose = [];
 let hillelLinks = [];
+let davidAshearLinks = [];
+let joeyHaberLinks = [];
+let yehudaMandelLinks = [];
 
 const MODE_KEY = "anchor-bubble-mode";
 
-// --- STREAM RESOLVER & IN-APP MODAL ---
-// Pulls the actual lecture media directly by ID instead of embedding
-// TorahAnyTime's page. This hits an undocumented endpoint on their side
-// (proxier.torahanytime.com), not a published API — it can break without
-// notice if they change anything. The MP4→MP3→manual-fallback chain below
-// exists specifically because of that: each step has a real, catchable
-// failure signal (unlike embedding their page in an iframe, where a block
-// can't be detected at all), so a failure at any point degrades gracefully
-// instead of silently breaking.
+// Pulls the actual lecture media file directly by ID (skipping the full
+// TorahAnyTime page) and hands it to the external browser/player. This
+// endpoint (proxier.torahanytime.com) is undocumented, not a published
+// API — it can change or stop working without notice. It's confirmed to
+// NOT work loaded into this app's own WebView <video> element (almost
+// certainly a header/referrer check that only a real browser satisfies),
+// so this deliberately does not attempt in-app playback at all anymore —
+// it opens the resolved direct URL externally, which is confirmed to work.
 function extractClassId(url) {
   if (!url) return null;
   const str = String(url).trim();
@@ -20,52 +22,23 @@ function extractClassId(url) {
   return match ? match[1] : null;
 }
 
-let currentModalUrl = "";
-
-function openLinkOrStream(url, titleText) {
+function openLinkOrStream(url) {
   if (!url) return;
   const classId = extractClassId(url);
-  const modal = document.getElementById("video-modal");
-  const player = document.getElementById("app-player");
-  const title = document.getElementById("video-title");
-  const status = document.getElementById("video-modal-status");
-
-  if (!classId || !modal || !player) {
-    // No lecture ID found, or the modal markup isn't present — fall back
-    // to the plain external open rather than showing a broken modal.
+  if (!classId) {
     window.open(url, "_system");
     return;
   }
-
-  currentModalUrl = url;
-  const primaryUrl = `https://proxier.torahanytime.com/mp4/${classId}.mp4`;
-  const fallbackAudioUrl = `https://proxier.torahanytime.com/mp3/${classId}.mp3`;
-
-  if (title) title.innerText = titleText || ("Lecture #" + classId);
-  if (status) status.textContent = "";
-  modal.classList.remove("is-hidden");
-
-  // First attempt: direct video.
-  player.src = primaryUrl;
-  player.onerror = () => {
-    // Second attempt: audio-only fallback.
-    if (status) status.textContent = "Video unavailable — trying audio...";
-    player.src = fallbackAudioUrl;
-    player.onerror = () => {
-      // Both failed — this is a real, confirmed failure (not a guess),
-      // so point directly at the manual escape hatch instead of a timer.
-      if (status) status.textContent = "Couldn't load this lecture in-app. Try \"Open in Browser\" below.";
-    };
-    player.play().catch(() => {
-      if (status) status.textContent = "Couldn't load this lecture in-app. Try \"Open in Browser\" below.";
-    });
-  };
-  player.play().catch((err) => {
-    // Autoplay being blocked isn't a real failure — controls are visible
-    // and the person can just tap play.
-    console.warn("Autoplay deferred:", err);
-  });
+  const directUrl = `https://proxier.torahanytime.com/mp4/${classId}.mp4`;
+  window.open(directUrl, "_system");
 }
+
+// The in-app modal (video element + fallback button) isn't used by
+// openLinkOrStream above anymore, but the markup and this wiring are left
+// in place rather than deleted a second time — if external-browser
+// playback also turns out unreliable, this is where an in-app attempt
+// would resume.
+let currentModalUrl = "";
 
 function closeVideoModal() {
   const modal = document.getElementById("video-modal");
@@ -90,14 +63,20 @@ if (openExternalBtn) openExternalBtn.addEventListener("click", () => {
 async function loadData() {
   // Local-only: read the JSON files bundled inside the app. No network calls.
   try {
-    const [uRes, dRes, hRes] = await Promise.all([
+    const [uRes, dRes, hRes, daRes, jhRes, ymRes] = await Promise.all([
       fetch("urls.json"),
       fetch("daily_dose.json"),
-      fetch("hillel_eisenberg.json")
+      fetch("hillel_eisenberg.json"),
+      fetch("rdavidashear.json"),
+      fetch("rjoeyhaber.json"),
+      fetch("ryehudamandel.json")
     ]);
     if (uRes.ok) urls = await uRes.json();
     if (dRes.ok) dailyDose = await dRes.json();
     if (hRes.ok) hillelLinks = await hRes.json();
+    if (daRes.ok) davidAshearLinks = await daRes.json();
+    if (jhRes.ok) joeyHaberLinks = await jhRes.json();
+    if (ymRes.ok) yehudaMandelLinks = await ymRes.json();
   } catch (err) {}
 }
 
@@ -117,6 +96,33 @@ if (hillelBtn) hillelBtn.addEventListener("click", () => {
     return;
   }
   openLinkOrStream(hillelLinks[Math.floor(Math.random() * hillelLinks.length)], "Rabbi Hillel Eisenberg");
+});
+
+const davidAshearBtn = document.getElementById("david-ashear-btn");
+if (davidAshearBtn) davidAshearBtn.addEventListener("click", () => {
+  if (!davidAshearLinks.length) {
+    alert("No Rabbi David Ashear links yet. Add them in rdavidashear.json");
+    return;
+  }
+  openLinkOrStream(davidAshearLinks[Math.floor(Math.random() * davidAshearLinks.length)], "Rabbi David Ashear");
+});
+
+const joeyHaberBtn = document.getElementById("joey-haber-btn");
+if (joeyHaberBtn) joeyHaberBtn.addEventListener("click", () => {
+  if (!joeyHaberLinks.length) {
+    alert("No Rabbi Joey Haber links yet. Add them in rjoeyhaber.json");
+    return;
+  }
+  openLinkOrStream(joeyHaberLinks[Math.floor(Math.random() * joeyHaberLinks.length)], "Rabbi Joey Haber");
+});
+
+const yehudaMandelBtn = document.getElementById("yehuda-mandel-btn");
+if (yehudaMandelBtn) yehudaMandelBtn.addEventListener("click", () => {
+  if (!yehudaMandelLinks.length) {
+    alert("No Rabbi Yehuda Mandel links yet. Add them in ryehudamandel.json");
+    return;
+  }
+  openLinkOrStream(yehudaMandelLinks[Math.floor(Math.random() * yehudaMandelLinks.length)], "Rabbi Yehuda Mandel");
 });
 
 const clipBtn = document.getElementById("clip-btn");

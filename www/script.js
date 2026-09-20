@@ -4,34 +4,88 @@ let hillelLinks = [];
 
 const MODE_KEY = "anchor-bubble-mode";
 
-// Plays a lecture link inside the app instead of handing off to a browser.
-// These are TorahAnyTime *page* links, not raw video files, so a <video>
-// tag can't play them directly — this embeds the actual page (with its
-// own player) in an iframe instead. If TorahAnyTime ever sends an
-// X-Frame-Options/CSP header blocking embedding, the frame will just show
-// blank with no catchable JS error — that's a real, untested risk, not
-// something this code can detect or work around.
-function openLinkOrStream(url) {
+// --- STREAM RESOLVER & IN-APP MODAL ---
+// Pulls the actual lecture media directly by ID instead of embedding
+// TorahAnyTime's page. This hits an undocumented endpoint on their side
+// (proxier.torahanytime.com), not a published API — it can break without
+// notice if they change anything. The MP4→MP3→manual-fallback chain below
+// exists specifically because of that: each step has a real, catchable
+// failure signal (unlike embedding their page in an iframe, where a block
+// can't be detected at all), so a failure at any point degrades gracefully
+// instead of silently breaking.
+function extractClassId(url) {
+  if (!url) return null;
+  const str = String(url).trim();
+  const match = str.match(/(?:lectures|c|lecture|id=)\/??(\d+)/i) || str.match(/^(\d+)$/);
+  return match ? match[1] : null;
+}
+
+let currentModalUrl = "";
+
+function openLinkOrStream(url, titleText) {
   if (!url) return;
+  const classId = extractClassId(url);
   const modal = document.getElementById("video-modal");
-  const frame = document.getElementById("video-frame");
-  if (!modal || !frame) {
+  const player = document.getElementById("app-player");
+  const title = document.getElementById("video-title");
+  const status = document.getElementById("video-modal-status");
+
+  if (!classId || !modal || !player) {
+    // No lecture ID found, or the modal markup isn't present — fall back
+    // to the plain external open rather than showing a broken modal.
     window.open(url, "_system");
     return;
   }
-  frame.src = url;
+
+  currentModalUrl = url;
+  const primaryUrl = `https://proxier.torahanytime.com/mp4/${classId}.mp4`;
+  const fallbackAudioUrl = `https://proxier.torahanytime.com/mp3/${classId}.mp3`;
+
+  if (title) title.innerText = titleText || ("Lecture #" + classId);
+  if (status) status.textContent = "";
   modal.classList.remove("is-hidden");
+
+  // First attempt: direct video.
+  player.src = primaryUrl;
+  player.onerror = () => {
+    // Second attempt: audio-only fallback.
+    if (status) status.textContent = "Video unavailable — trying audio...";
+    player.src = fallbackAudioUrl;
+    player.onerror = () => {
+      // Both failed — this is a real, confirmed failure (not a guess),
+      // so point directly at the manual escape hatch instead of a timer.
+      if (status) status.textContent = "Couldn't load this lecture in-app. Try \"Open in Browser\" below.";
+    };
+    player.play().catch(() => {
+      if (status) status.textContent = "Couldn't load this lecture in-app. Try \"Open in Browser\" below.";
+    });
+  };
+  player.play().catch((err) => {
+    // Autoplay being blocked isn't a real failure — controls are visible
+    // and the person can just tap play.
+    console.warn("Autoplay deferred:", err);
+  });
 }
 
 function closeVideoModal() {
   const modal = document.getElementById("video-modal");
-  const frame = document.getElementById("video-frame");
-  if (frame) frame.src = "about:blank"; // stop playback on close
+  const player = document.getElementById("app-player");
+  if (player) {
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+  }
   if (modal) modal.classList.add("is-hidden");
+  currentModalUrl = "";
 }
 
 const closeVideoModalBtn = document.getElementById("close-video-modal-btn");
 if (closeVideoModalBtn) closeVideoModalBtn.addEventListener("click", closeVideoModal);
+
+const openExternalBtn = document.getElementById("open-external-btn");
+if (openExternalBtn) openExternalBtn.addEventListener("click", () => {
+  if (currentModalUrl) window.open(currentModalUrl, "_system");
+});
 
 async function loadData() {
   // Local-only: read the JSON files bundled inside the app. No network calls.
@@ -53,7 +107,7 @@ if (dailyBtn) dailyBtn.addEventListener("click", () => {
     alert("No Daily Dose links yet. Add them in daily_dose.json");
     return;
   }
-  openLinkOrStream(dailyDose[Math.floor(Math.random() * dailyDose.length)]);
+  openLinkOrStream(dailyDose[Math.floor(Math.random() * dailyDose.length)], "Daily Dose");
 });
 
 const hillelBtn = document.getElementById("hillel-btn");
@@ -62,7 +116,7 @@ if (hillelBtn) hillelBtn.addEventListener("click", () => {
     alert("No Rabbi Hillel Eisenberg links yet. Add them in hillel_eisenberg.json");
     return;
   }
-  openLinkOrStream(hillelLinks[Math.floor(Math.random() * hillelLinks.length)]);
+  openLinkOrStream(hillelLinks[Math.floor(Math.random() * hillelLinks.length)], "Rabbi Hillel Eisenberg");
 });
 
 const clipBtn = document.getElementById("clip-btn");
@@ -72,7 +126,7 @@ if (clipBtn) clipBtn.addEventListener("click", () => {
     return;
   }
   const link = urls[Math.floor(Math.random() * urls.length)];
-  openLinkOrStream(link);
+  openLinkOrStream(link, "Vayimaen");
 });
 
 // Notes
@@ -152,7 +206,7 @@ function renderChizukList() {
     linkBtn.className = "link-label";
     linkBtn.textContent = link;
     linkBtn.title = link;
-    linkBtn.onclick = () => openLinkOrStream(link);
+    linkBtn.onclick = () => openLinkOrStream(link, "My Chizuk");
 
     const delBtn = document.createElement("button");
     delBtn.textContent = "🗑";
@@ -198,7 +252,7 @@ const chizukBtn = document.getElementById("chizuk-btn");
 if (chizukBtn) chizukBtn.addEventListener("click", () => {
   const links = getChizukLinks();
   if (!links.length) return;
-  openLinkOrStream(links[Math.floor(Math.random() * links.length)]);
+  openLinkOrStream(links[Math.floor(Math.random() * links.length)], "My Chizuk");
 });
 
 // Bubble appearance (color + opacity + reappear corner).

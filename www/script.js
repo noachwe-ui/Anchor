@@ -7,58 +7,16 @@ let yehudaMandelLinks = [];
 
 const MODE_KEY = "anchor-bubble-mode";
 
-// Pulls the actual lecture media file directly by ID (skipping the full
-// TorahAnyTime page) and hands it to the external browser/player. This
-// endpoint (proxier.torahanytime.com) is undocumented, not a published
-// API — it can change or stop working without notice. It's confirmed to
-// NOT work loaded into this app's own WebView <video> element (almost
-// certainly a header/referrer check that only a real browser satisfies),
-// so this deliberately does not attempt in-app playback at all anymore —
-// it opens the resolved direct URL externally, which is confirmed to work.
-function extractClassId(url) {
-  if (!url) return null;
-  const str = String(url).trim();
-  const match = str.match(/(?:lectures|c|lecture|id=)\/??(\d+)/i) || str.match(/^(\d+)$/);
-  return match ? match[1] : null;
-}
-
+// The direct proxier.torahanytime.com endpoint requires authorization we
+// don't have and can't legitimately obtain (confirmed by TorahAnyTime's
+// own "not authorized to be proxied" error) — reverse-engineering that
+// would mean deliberately working around a security control they've put
+// in place, which isn't something to build. Opening the real lecture
+// page externally is what's actually reliable.
 function openLinkOrStream(url) {
   if (!url) return;
-  const classId = extractClassId(url);
-  if (!classId) {
-    window.open(url, "_system");
-    return;
-  }
-  const directUrl = `https://proxier.torahanytime.com/mp4/${classId}.mp4`;
-  window.open(directUrl, "_system");
+  window.open(url, "_system");
 }
-
-// The in-app modal (video element + fallback button) isn't used by
-// openLinkOrStream above anymore, but the markup and this wiring are left
-// in place rather than deleted a second time — if external-browser
-// playback also turns out unreliable, this is where an in-app attempt
-// would resume.
-let currentModalUrl = "";
-
-function closeVideoModal() {
-  const modal = document.getElementById("video-modal");
-  const player = document.getElementById("app-player");
-  if (player) {
-    player.pause();
-    player.removeAttribute("src");
-    player.load();
-  }
-  if (modal) modal.classList.add("is-hidden");
-  currentModalUrl = "";
-}
-
-const closeVideoModalBtn = document.getElementById("close-video-modal-btn");
-if (closeVideoModalBtn) closeVideoModalBtn.addEventListener("click", closeVideoModal);
-
-const openExternalBtn = document.getElementById("open-external-btn");
-if (openExternalBtn) openExternalBtn.addEventListener("click", () => {
-  if (currentModalUrl) window.open(currentModalUrl, "_system");
-});
 
 async function loadData() {
   // Local-only: read the JSON files bundled inside the app. No network calls.

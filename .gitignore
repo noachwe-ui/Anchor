@@ -6,3 +6,5 @@ android/build/
 *.aab
 *.zip
 android/local.properties
+android/keystore.properties
+android/app/release.keystore

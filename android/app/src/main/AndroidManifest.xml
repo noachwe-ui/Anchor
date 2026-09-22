@@ -63,28 +63,6 @@
         </provider>
 
     
-        <receiver
-            android:name=".RoundWidgetProvider"
-            android:exported="true"
-            android:label="@string/round_widget_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/round_widget_info" />
-        </receiver>
-
-        <activity
-            android:name=".RoundWidgetConfigureActivity"
-            android:exported="true"
-            android:theme="@style/AppTheme">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-            </intent-filter>
-        </activity>
-
-    
         <activity
             android:name=".AnchorWidgetConfigureActivity"
             android:exported="true"
